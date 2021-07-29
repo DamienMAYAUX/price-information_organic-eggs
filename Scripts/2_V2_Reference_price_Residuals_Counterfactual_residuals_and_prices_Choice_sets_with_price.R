@@ -1,11 +1,6 @@
 
-library(tidyverse)
-library(quantreg)
-library(stargazer)
-
-directory_path = "D:/Users/Louise/Desktop/PSE/Mémoire/Code/Scripts/Microeconometrics"
-setwd(directory_path)
-
+setwd("E:/Mémoire/Code/price-information_organic-eggs")
+source("Scripts/0_Packages_Libraries.R")
 
 consumption_filtered_again = readRDS("Inputs/data_fully_filtered.rds")
 choice_situation_df = readRDS("Inputs/choice_situation_without_price.rds")
@@ -14,45 +9,45 @@ choice_situation_df = readRDS("Inputs/choice_situation_without_price.rds")
 
 #### WE NOTICE THE EXISTENCE OF A BASELINE PRICE ####
 
-ggplot(
-  consumption_filtered_again%>%
-    group_by(retailer, product_label_chosen)%>%
-    mutate(sales = n())%>%
-    ungroup()%>%
-    filter(sales > 1300)%>%
-    mutate(product_label_retailer = paste(product_label_chosen, retailer, sep = '_'))%>%
-    rename(
-      `eggs per box` = valqvol,
-      `sales date` = dateachat,
-      `price per egg` = unit_price
-      )
-  )+
-  geom_point(aes(x = `sales date`, y = `price per egg` , color = `eggs per box`))+
-  facet_grid(rows = "product_label_retailer", scales = "free")
-
-ggsave(
-  "Outputs/reference_price/Price_patterns_most_common_couple_product_retailer_1.png", 
-  device = "png", width = 10, height = 10)
-
-ggplot(
-  consumption_filtered_again%>%
-    group_by(retailer, product_label_chosen)%>%
-    mutate(sales = n())%>%
-    ungroup()%>%
-    filter(sales < 1300, sales > 1000, valqvol != 1, valqvol != 6)%>%
-    mutate(product_label_retailer = paste(product_label_chosen, retailer, sep = '_'))%>%
-    rename(
-      `eggs per box` = valqvol,
-      `sales date` = dateachat,
-      `price per egg` = unit_price
-    )
-)+
-  geom_point(aes(x = `sales date`, y = `price per egg`, color = `eggs per box`))+
-  facet_grid(rows = "product_label_retailer", scales = "free")
-
-ggsave(
-  "Outputs/reference_price/Price_patterns_most_common_couple_product_retailer_2.png", 
-  device = "png", width = 10, height = 15)
+# ggplot(
+#   consumption_filtered_again%>%
+#     group_by(retailer, product_label_chosen)%>%
+#     mutate(sales = n())%>%
+#     ungroup()%>%
+#     filter(sales > 1300)%>%
+#     mutate(product_label_retailer = paste(product_label_chosen, retailer, sep = '_'))%>%
+#     rename(
+#       `eggs per box` = valqvol,
+#       `sales date` = dateachat,
+#       `price per egg` = unit_price
+#       )
+#   )+
+#   geom_point(aes(x = `sales date`, y = `price per egg` , color = `eggs per box`))+
+#   facet_grid(rows = "product_label_retailer", scales = "free")
+# 
+# ggsave(
+#   "Outputs/reference_price/Price_patterns_most_common_couple_product_retailer_1.png", 
+#   device = "png", width = 10, height = 10)
+# 
+# ggplot(
+#   consumption_filtered_again%>%
+#     group_by(retailer, product_label_chosen)%>%
+#     mutate(sales = n())%>%
+#     ungroup()%>%
+#     filter(sales < 1300, sales > 1000, valqvol != 1, valqvol != 6)%>%
+#     mutate(product_label_retailer = paste(product_label_chosen, retailer, sep = '_'))%>%
+#     rename(
+#       `eggs per box` = valqvol,
+#       `sales date` = dateachat,
+#       `price per egg` = unit_price
+#     )
+# )+
+#   geom_point(aes(x = `sales date`, y = `price per egg`, color = `eggs per box`))+
+#   facet_grid(rows = "product_label_retailer", scales = "free")
+# 
+# ggsave(
+#   "Outputs/reference_price/Price_patterns_most_common_couple_product_retailer_2.png", 
+#   device = "png", width = 10, height = 15)
 
 
 
@@ -99,93 +94,93 @@ ref_price = consumption_filtered_again%>%
 
 # Visualisation du résultat sur les exemples du début
 
-ggplot(
-  consumption_filtered_again%>%
-    group_by(retailer, product_label_chosen)%>%
-    mutate(sales = n())%>%
-    ungroup()%>%
-    filter(sales > 1300, valqvol == 10)%>%
-    mutate(
-      product_label_retailer_valqvol = paste(product_label_chosen, retailer, valqvol, sep = '_'),
-      product_label_retailer = paste(product_label_chosen, retailer, sep = '_'))%>%
-    left_join(ref_price)%>%
-    rename(
-      `eggs per box` = valqvol,
-      `sales date` = dateachat,
-      `price per egg` = unit_price
-    )
-)+
-  geom_point(aes(x = `sales date`, y = `price per egg`, color = 'actual price'))+
-  geom_point(aes(x = `sales date`, y = ref_price, color  = 'reference price'), size = 0.5)+
-  facet_grid(row = vars(`product_label_retailer`), scales = "free")
-
-ggsave(
-  "Outputs/reference_price/Reference_price_most_common_couple_product_retailer_1.png", 
-  device = "png", width = 10, height = 10)
-
-
-ggplot(
-  consumption_filtered_again%>%
-    group_by(retailer, product_label_chosen)%>%
-    mutate(sales = n())%>%
-    ungroup()%>%
-    filter(sales < 1300, sales > 1000, valqvol == 12)%>%
-    mutate(
-      product_label_retailer_valqvol = paste(product_label_chosen, retailer, valqvol, sep = '_'),
-      product_label_retailer = paste(product_label_chosen, retailer, sep = '_'))%>%
-    left_join(ref_price)%>%
-    rename(
-      `eggs per box` = valqvol,
-      `sales date` = dateachat,
-      `price per egg` = unit_price
-    )
-)+
-  geom_point(aes(x = `sales date`, y = `price per egg`, color = 'actual price'))+
-  geom_point(aes(x = `sales date`, y = ref_price, color = 'reference price'), size = 0.5)+
-  facet_grid(row = vars(`product_label_retailer`), cols = vars(`eggs per box`), scales = "free")
-# On notera qu'il manque un prix de référence 
-# pour une des dernières périodes du troisième élément
-
-ggsave(
-  "Outputs/reference_price/Reference_price_most_common_couple_product_retailer_2.png", 
-  device = "png", width = 15, height = 20)
-
-
-# On compare le nombre de produit x retailer pour lesquels 
-# on a un prix de référence pour certaines periodes
-# avec le nombre de produit x retailer total
-nrow(ref_price%>% group_by(product_label_retailer_valqvol)%>%
-       summarise(nb = n()))
-nrow(consumption_filtered_again%>%
-       group_by(product_label_chosen, retailer, valqvol)%>%
-       summarise(nb = n()))
-# Envrion 6%
-
-# Même chose au niveau produit x retailer x periode
-nrow(ref_price)
-nrow(consumption_filtered_again%>%
-       group_by(product_label_chosen, retailer, valqvol, periode)%>%
-       summarise(nb = n()))
-# Environ 6%
-
-# On regarde la part des ventes que cela représente
-product_label_retailer_valqvol_periode_df = ref_price%>%
-  select(-ref_price)%>%
-  unique()
-nrow(consumption_filtered_again%>%
-  mutate(product_label_retailer_valqvol = 
-           paste(product_label_chosen, retailer, valqvol, sep = '_'))%>%
-  inner_join(product_label_retailer_valqvol_periode_df))
-nrow(consumption_filtered_again)
-# Environ 50% des actes de ventes ont une prix de reference bien defini
+# ggplot(
+#   consumption_filtered_again%>%
+#     group_by(retailer, product_label_chosen)%>%
+#     mutate(sales = n())%>%
+#     ungroup()%>%
+#     filter(sales > 1300, valqvol == 10)%>%
+#     mutate(
+#       product_label_retailer_valqvol = paste(product_label_chosen, retailer, valqvol, sep = '_'),
+#       product_label_retailer = paste(product_label_chosen, retailer, sep = '_'))%>%
+#     left_join(ref_price)%>%
+#     rename(
+#       `eggs per box` = valqvol,
+#       `sales date` = dateachat,
+#       `price per egg` = unit_price
+#     )
+# )+
+#   geom_point(aes(x = `sales date`, y = `price per egg`, color = 'actual price'))+
+#   geom_point(aes(x = `sales date`, y = ref_price, color  = 'reference price'), size = 0.5)+
+#   facet_grid(row = vars(`product_label_retailer`), scales = "free")
+# 
+# ggsave(
+#   "Outputs/reference_price/Reference_price_most_common_couple_product_retailer_1.png", 
+#   device = "png", width = 10, height = 10)
+# 
+# 
+# ggplot(
+#   consumption_filtered_again%>%
+#     group_by(retailer, product_label_chosen)%>%
+#     mutate(sales = n())%>%
+#     ungroup()%>%
+#     filter(sales < 1300, sales > 1000, valqvol == 12)%>%
+#     mutate(
+#       product_label_retailer_valqvol = paste(product_label_chosen, retailer, valqvol, sep = '_'),
+#       product_label_retailer = paste(product_label_chosen, retailer, sep = '_'))%>%
+#     left_join(ref_price)%>%
+#     rename(
+#       `eggs per box` = valqvol,
+#       `sales date` = dateachat,
+#       `price per egg` = unit_price
+#     )
+# )+
+#   geom_point(aes(x = `sales date`, y = `price per egg`, color = 'actual price'))+
+#   geom_point(aes(x = `sales date`, y = ref_price, color = 'reference price'), size = 0.5)+
+#   facet_grid(row = vars(`product_label_retailer`), cols = vars(`eggs per box`), scales = "free")
+# # On notera qu'il manque un prix de référence 
+# # pour une des dernières périodes du troisième élément
+# 
+# ggsave(
+#   "Outputs/reference_price/Reference_price_most_common_couple_product_retailer_2.png", 
+#   device = "png", width = 15, height = 20)
 
 
+# # On compare le nombre de produit x retailer pour lesquels 
+# # on a un prix de référence pour certaines periodes
+# # avec le nombre de produit x retailer total
+# nrow(ref_price%>% group_by(product_label_retailer_valqvol)%>%
+#        summarise(nb = n()))
+# nrow(consumption_filtered_again%>%
+#        group_by(product_label_chosen, retailer, valqvol)%>%
+#        summarise(nb = n()))
+# # Envrion 6%
+# 
+# # Même chose au niveau produit x retailer x periode
+# nrow(ref_price)
+# nrow(consumption_filtered_again%>%
+#        group_by(product_label_chosen, retailer, valqvol, periode)%>%
+#        summarise(nb = n()))
+# # Environ 6%
+# 
+# # On regarde la part des ventes que cela représente
+# product_label_retailer_valqvol_periode_df = ref_price%>%
+#   select(-ref_price)%>%
+#   unique()
+# nrow(consumption_filtered_again%>%
+#   mutate(product_label_retailer_valqvol = 
+#            paste(product_label_chosen, retailer, valqvol, sep = '_'))%>%
+#   inner_join(product_label_retailer_valqvol_periode_df))
+# nrow(consumption_filtered_again)
+# # Environ 50% des actes de ventes ont une prix de reference bien defini
+# 
+# 
 # Pour la moitié restante, on prend le 3e décile comme prix de référence
 ref_price_completed = consumption_filtered_again%>%
   select(periode, hhid, product_label_chosen, retailer, unit_price, valqvol)%>%
   mutate(
     valqvol = as.factor(valqvol),
-    product_label_retailer_valqvol = 
+    product_label_retailer_valqvol =
       paste(product_label_chosen, retailer, valqvol, sep = '_')
   )%>%
   select(product_label_retailer_valqvol, periode, unit_price)%>%
@@ -195,29 +190,29 @@ ref_price_completed = consumption_filtered_again%>%
   mutate(
     ref_price_completed = ifelse(!is.na(ref_price), ref_price, decile_3)
     )
-
-# Est-ce que ces deux valeurs se ressemblent quand elles sont bien définies ?
-ref_price_completed%>%
-  filter(!is.na(ref_price))%>%
-  mutate(same = (ref_price == decile_3))%>%
-  .$same%>%
-  sum()
-ref_price_completed%>%
-  filter(!is.na(ref_price))%>%
-  nrow()
-
-# On peut regarder les 70 cas pour lesquels c'est different en se demandant 
-# si ça valait la peine de prendre une définition compliquee 
-# alors que le 3e decile a l'air de suffire
-ref_price_completed%>%
-  right_join(
-    consumption_filtered_again%>%
-      mutate(product_label_retailer_valqvol = paste(product, label, retailer, valqvol, sep = "_"))
-    )%>%
-  filter(!is.na(ref_price), ref_price != decile_3)%>%
-  nrow()
-# Il y a environ 2600 achats pour lesquels ça fait une difference
-# On garde donc la definition compliquee, au cas ou  
+# 
+# # Est-ce que ces deux valeurs se ressemblent quand elles sont bien définies ?
+# ref_price_completed%>%
+#   filter(!is.na(ref_price))%>%
+#   mutate(same = (ref_price == decile_3))%>%
+#   .$same%>%
+#   sum()
+# ref_price_completed%>%
+#   filter(!is.na(ref_price))%>%
+#   nrow()
+# 
+# # On peut regarder les 70 cas pour lesquels c'est different en se demandant 
+# # si ça valait la peine de prendre une définition compliquee 
+# # alors que le 3e decile a l'air de suffire
+# ref_price_completed%>%
+#   right_join(
+#     consumption_filtered_again%>%
+#       mutate(product_label_retailer_valqvol = paste(product, label, retailer, valqvol, sep = "_"))
+#     )%>%
+#   filter(!is.na(ref_price), ref_price != decile_3)%>%
+#   nrow()
+# # Il y a environ 2600 achats pour lesquels ça fait une difference
+# # On garde donc la definition compliquee, au cas ou  
 
 
 #### WE CORRECT THE PRICE OF EGGS FOR ####
@@ -260,39 +255,39 @@ saveRDS(consumption_adjusted, "Inputs/consumption_with_adjusted_price.rds")
 
 
 
-ggplot(
-  consumption_adjusted%>%
-    group_by(retailer, product_label_chosen)%>%
-    mutate(sales = n())%>%
-    ungroup()%>%
-    left_join(
-      consumption_adjusted%>%
-        select(retailer, product_label_chosen, valqvol)%>%
-        filter(valqvol != 1, valqvol != 20)%>%
-        unique()%>%
-        group_by(retailer,product_label_chosen)%>%
-        summarise(nb_valqvol = n())
-    )%>%
-    filter(sales > 1000, valqvol != 20, valqvol != 1, nb_valqvol > 1)%>%
-    mutate(
-      product_label_retailer_valqvol = paste(product_label_chosen, retailer, valqvol, sep = '_'),
-      product_label_retailer = paste(product_label_chosen, retailer, sep = '_'))%>%
-    left_join(ref_price)%>%
-    rename(
-      `eggs per box` = valqvol,
-      `sales date` = dateachat,
-      `price per egg` = unit_price
-    )
-)+
-  geom_point(aes(x = `sales date`, y = `price per egg`, color = 'actual price'), size = 2)+
-  geom_point(aes(x = `sales date`, y = ref_price, color  = 'reference price'), size = 1.5)+
-  geom_point(aes(x = `sales date`, y = unit_price_adjusted, color  = 'adjusted price'), size = 1)+
-  geom_point(aes(x = `sales date`, y = ref_price_adjusted, color  = 'adjusted reference price'), size = 0.5)+
-  facet_grid(rows = vars(product_label_retailer), cols = vars(`eggs per box`), scales = 'free')
-
-ggsave(
-  "Outputs/reference_price/Adjusted_price_most_common_couple_product_retailer.png", 
-  device = "png", width = 10, height = 10)
+# ggplot(
+#   consumption_adjusted%>%
+#     group_by(retailer, product_label_chosen)%>%
+#     mutate(sales = n())%>%
+#     ungroup()%>%
+#     left_join(
+#       consumption_adjusted%>%
+#         select(retailer, product_label_chosen, valqvol)%>%
+#         filter(valqvol != 1, valqvol != 20)%>%
+#         unique()%>%
+#         group_by(retailer,product_label_chosen)%>%
+#         summarise(nb_valqvol = n())
+#     )%>%
+#     filter(sales > 1000, valqvol != 20, valqvol != 1, nb_valqvol > 1)%>%
+#     mutate(
+#       product_label_retailer_valqvol = paste(product_label_chosen, retailer, valqvol, sep = '_'),
+#       product_label_retailer = paste(product_label_chosen, retailer, sep = '_'))%>%
+#     left_join(ref_price)%>%
+#     rename(
+#       `eggs per box` = valqvol,
+#       `sales date` = dateachat,
+#       `price per egg` = unit_price
+#     )
+# )+
+#   geom_point(aes(x = `sales date`, y = `price per egg`, color = 'actual price'), size = 2)+
+#   geom_point(aes(x = `sales date`, y = ref_price, color  = 'reference price'), size = 1.5)+
+#   geom_point(aes(x = `sales date`, y = unit_price_adjusted, color  = 'adjusted price'), size = 1)+
+#   geom_point(aes(x = `sales date`, y = ref_price_adjusted, color  = 'adjusted reference price'), size = 0.5)+
+#   facet_grid(rows = vars(product_label_retailer), cols = vars(`eggs per box`), scales = 'free')
+# 
+# ggsave(
+#   "Outputs/reference_price/Adjusted_price_most_common_couple_product_retailer.png", 
+#   device = "png", width = 10, height = 10)
 
 
 

@@ -1,11 +1,4 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
+
 
 library(shiny)
 library(tidyverse)
@@ -33,7 +26,7 @@ ui <- fluidPage(
                         step = 0.1),
             
             sliderInput("cost",
-                        "Cost difference between organic and other eggs",
+                        "Cost difference between organic and non-organic eggs",
                         min = 0,
                         max = 0.3,
                         value = 0.1,
@@ -52,7 +45,8 @@ ui <- fluidPage(
                 c(
                     "Lognormal" = "lognormal",
                     "Exponential" = "exponential",
-                    "Truncated gaussian" = "truncated_gaussian"
+                    "Truncated gaussian" = "truncated_gaussian",
+                    "Posterior distribution in the data" = "posterior"
                 )
             ),
             
@@ -76,7 +70,9 @@ ui <- fluidPage(
                 c(
                     "Lognormal" = "lognormal",
                     "Exponential" = "exponential",
-                    "Truncated gaussian" = "truncated_gaussian"
+                    "Truncated gaussian" = "truncated_gaussian",
+                    "Young single high-education (posterior distribution in KWP)" = "young_single",
+                    "Family with high-education and children under 5 (posterior distribution in KWP)" = "educated_family"
                 )
             ),
             

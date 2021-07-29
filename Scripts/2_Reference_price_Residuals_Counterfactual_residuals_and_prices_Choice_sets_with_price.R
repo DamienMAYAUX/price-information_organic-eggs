@@ -1,10 +1,6 @@
 
-library(tidyverse)
-library(quantreg)
-library(stargazer)
-
-directory_path = "C:/Users/d.mayaux/Desktop/PSE/Mémoire/Code/Scripts/Microeconometrics"
-setwd(directory_path)
+setwd("E:/Mémoire/Code/price-information_organic-eggs")
+source("Scripts/0_Packages_Libraries.R")
 
 
 consumption_filtered_again = readRDS("Inputs/data_fully_filtered.rds")

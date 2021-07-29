@@ -1,8 +1,8 @@
-library("tidyverse")
+
+setwd("E:/Mémoire/Code/price-information_organic-eggs")
+source("Scripts/0_Packages_Libraries.R")
 
 
-directory_path = "D:/Users/Louise/Desktop/PSE/Mémoire/Code/Scripts/Microeconometrics"
-setwd(directory_path)
 
 choice_situation_without_prices_df = readRDS("Inputs/choice_situation_without_price.rds")%>%
   mutate_at(vars(valqvol), as.numeric)
@@ -44,7 +44,7 @@ df_product = choice_situation_with_average_prices_df%>%
   select(-"n")%>%
   mutate(product_number = 1:n())
 
-saveRDS(df_product, "df_product.rds")
+saveRDS(df_product, "Inputs/df_product.rds")
 
 
 df_shopping_visits = choice_situation_with_average_prices_df%>%
@@ -83,7 +83,7 @@ choice_situation_for_optimization = choice_situation_with_average_prices_df%>%
     )%>%
   mutate(across(ends_with('price'), list(avl = ~as.numeric(!is.na(.))), "{.col}_{.fn}"))
 
-saveRDS(choice_situation_for_optimization, "dataforApollo.rds")
+saveRDS(choice_situation_for_optimization, "Input/dataforApollo.rds")
 
 
 hhid_list = choice_situation_for_optimization$hhid%>% unique()
@@ -98,4 +98,11 @@ saveRDS(choice_situation_for_optimization_lighter, "dataforApollolighter.rds")
 
 
 
+
+# Specification for the demand model
+# 1 - with "other product", without opt-out, one sales per period  
+#     define 
+# 2 - 
+#
+#
 
