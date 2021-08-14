@@ -2,6 +2,7 @@
 setwd("E:/Mémoire/Code/price-information_organic-eggs")
 source("Scripts/0_Packages_Libraries.R")
 
+start = Sys.time()
 
 #### STEP 1 : Keep only households with a large number of non-empty shopping trips 
 
@@ -53,6 +54,22 @@ consumption_completed_with_nosale =
     consumption_without_nosale%>%
       filter(hhid %in% hhid_with_enough_period_with_visit)
     )
+
+  # Keep only one observation per period, sales included
+X_one_per_period = consumption_completed_with_nosale%>% 
+  group_by(hhid, periode)%>%
+  mutate(
+    rank = 1:n(),
+    lottery = sample(1:n(),1)
+  )%>%
+  ungroup()%>%
+  filter(rank == lottery)%>%
+  select(-rank, -lottery)%>%
+  select(X)
+
+saveRDS(X_one_per_period, "Inputs/X_one_per_period.rds")
+
+
 
 consumption_completed_without_nosale = consumption_completed_with_nosale%>% filter(marque_simple != "nosale")
 
@@ -136,6 +153,7 @@ df_product_without_nosale = consumption_completed_without_nosale%>%
 saveRDS(df_product_with_nosale, "Inputs/product_with_nosale.rds")
 saveRDS(df_product_without_nosale, "Inputs/product_without_nosale.rds")
 
+
 choice_situation_with_nosale_for_apollo = choice_situation_with_nosale_for_estimation%>%
   left_join(df_product_with_nosale)%>%
   group_by(X)%>%
@@ -143,7 +161,7 @@ choice_situation_with_nosale_for_apollo = choice_situation_with_nosale_for_estim
     choice = max(choice * product_number)
   )%>%
   ungroup()%>%
-  mutate_at(vars(X, hhid, choice, valqvol), as.integer)%>%
+  mutate_at(vars(X, hhid, choice, valqvol), ~as.integer(as.character(.)))%>%
   mutate_at(vars(price, control), as.numeric)%>%
   pivot_wider(
     id_cols = c("X", "hhid", "choice"),
@@ -232,5 +250,10 @@ saveRDS(
 
 
 
+end = Sys.time()
 
+print("DUration: ")
+print(end-start)
+
+# 3 min
 

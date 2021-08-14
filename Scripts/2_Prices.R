@@ -2,6 +2,7 @@
 setwd("E:/Mémoire/Code/price-information_organic-eggs")
 source("Scripts/0_Packages_Libraries.R")
 
+start = Sys.time()
 
 #### DEFINING A REFERENCE PRICE AT THE PRODUCT LEVEL
 
@@ -133,3 +134,10 @@ saveRDS(control_residuals_distribution, "Inputs/control_residuals_distribution.r
 saveRDS(control_residuals_med_centile_hhid, "Inputs/control_residuals_med_centile_hhid.rds")
 
 
+
+end = Sys.time()
+
+print("Duration : ")
+print(end-start)
+
+# Environ 2 minutes

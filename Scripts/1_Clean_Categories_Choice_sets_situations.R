@@ -2,6 +2,7 @@
 setwd("E:/Mémoire/Code/price-information_organic-eggs")
 source("Scripts/0_Packages_Libraries.R")
 
+start = Sys.time()
 
 #### DATA LOADING
 
@@ -269,8 +270,8 @@ consumption_cleaner5  = consumption_cleaner4%>%
     marque = ifelse(marque == "AUCHAN.BIO", "AUCHAN", marque),
     marque = ifelse(marque == "U.BIO U", "U", marque),
     marque = ifelse(marque == "MONOPRIX BIO", "MONOPRIX", marque),
-    marque = ifelse(marque == "CARREFOUR.BIO", "MONOPRIX", marque),
-    marque = ifelse(marque == "CASINO.BIO", "MONOPRIX", marque)
+    marque = ifelse(marque == "CARREFOUR.BIO", "CARREFOUR", marque),
+    marque = ifelse(marque == "CASINO.BIO", "CASINO", marque)
   )%>%
   left_join(df_marques)%>%
   mutate_at(vars(retailer, marque_simple, marque), as.factor)
@@ -381,5 +382,12 @@ df_choice_situation = consumption_cleaner6%>%
     "Inputs/choice_situations_without_nosale.rds"
     )
   
+end = Sys.time()
+
+print("Duration : ")
+print(end-start)
+
+
+
   
   

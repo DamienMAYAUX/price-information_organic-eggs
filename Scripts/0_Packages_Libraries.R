@@ -1,7 +1,8 @@
 
-list.of.packages <- c("haven", "foreign", "readxl", "tidyverse", "quantreg", "stargazer", "shiny", "apollo")
+list.of.packages <- c("haven", "foreign", "readxl", "tidyverse", "quantreg", "gtsummary", "stargazer", "shiny", "apollo")
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
+
 
 library(haven)
 library(foreign)
@@ -10,6 +11,7 @@ library(tidyverse)
 
 library(quantreg)
 
+library(gtsummary)
 library(stargazer)
 library(shiny)
 
