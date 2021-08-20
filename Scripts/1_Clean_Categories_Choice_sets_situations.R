@@ -387,7 +387,7 @@ end = Sys.time()
 print("Duration : ")
 print(end-start)
 
-
+# 2min40
 
   
   

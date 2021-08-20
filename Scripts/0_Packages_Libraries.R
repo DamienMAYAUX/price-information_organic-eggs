@@ -8,6 +8,7 @@ library(haven)
 library(foreign)
 library(readxl)
 library(tidyverse)
+library(stringr)
 
 library(quantreg)
 

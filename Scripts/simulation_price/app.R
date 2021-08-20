@@ -7,13 +7,13 @@ library("mosaic")
 
 rv = reactiveValues()
 
-# Define UI for application that draws a histogram
+
 ui <- fluidPage(
 
     # Application title
     titlePanel("Activism and Price : Simulator"),
 
-    # Sidebar with a slider input for number of bins 
+    
     sidebarLayout(
         
         sidebarPanel(
@@ -22,79 +22,80 @@ ui <- fluidPage(
                         "Conduct parameter",
                         min = 0,
                         max = 1,
-                        value = 0.5,
-                        step = 0.1),
+                        value = 0.25,
+                        step = 0.02),
             
             sliderInput("cost",
-                        "Cost difference between organic and non-organic eggs",
+                        "Wholesale price of organic eggs",
                         min = 0,
-                        max = 0.3,
-                        value = 0.1,
-                        step = 0.05),
+                        max = 0.4,
+                        value = 0.2,
+                        step = 0.01),
             
             sliderInput("activist_log_mass",
                         "Mass of activists (opposite of the log base 10)",
                         min = 0,
                         max = 4,
-                        value = 1,
+                        value = 2,
                         step = 0.5),
             
-            radioButtons(
-                "passive_shape",
-                "What is the distribution of the WTP among passive consumers ?",
-                c(
-                    "Lognormal" = "lognormal",
-                    "Exponential" = "exponential",
-                    "Truncated gaussian" = "truncated_gaussian",
-                    "Posterior distribution in the data" = "posterior"
-                )
-            ),
-            
-            sliderInput("passive_mean",
-                        "Average WTP among passive consumers",
-                        min = 0,
-                        max = 0.3,
-                        value = 0.1,
-                        step = 0.01),
-            
-            sliderInput("passive_sigma",
-                        "Standard deviation among passive consumers",
+            sliderInput("activist_mean",
+                        "Average WTP among the activists",
                         min = 0,
                         max = 1,
                         value = 0.5,
                         step = 0.01),
+            
+            sliderInput("activist_sigma",
+                        "Standard deviation among the activists",
+                        min = 0,
+                        max = 1,
+                        value = 0.2,
+                        step = 0.01),
+            
+            uiOutput("activist_additional_parameter"),
             
             radioButtons(
                 "activist_shape",
                 "What is the distribution of the WTP in the activist population ?",
                 c(
                     "Lognormal" = "lognormal",
-                    "Exponential" = "exponential",
-                    "Truncated gaussian" = "truncated_gaussian",
-                    "Young single high-education (posterior distribution in KWP)" = "young_single",
-                    "Family with high-education and children under 5 (posterior distribution in KWP)" = "educated_family"
-                )
+                    "Exponential" = "exponential"
+                    )
             ),
             
-            sliderInput("activist_mean",
-                        "Average WTP among the activists",
+            sliderInput("passive_mean",
+                        "Location parameter for passive consumers",
                         min = 0,
-                        max = 0.5,
-                        value = 0.15,
+                        max = 5,
+                        value = 2.43,
                         step = 0.01),
+            
+            sliderInput("passive_sigma",
+                        "Dispersion parameter for passive consumers",
+                        min = 0,
+                        max = 1,
+                        value = 0.85,
+                        step = 0.01),
+            
+            uiOutput("passive_additional_parameter"),
+            
+            radioButtons(
+                "passive_shape",
+                "What is the distribution of the WTP among passive consumers ?",
+                c(
+                    "Inverse of a lognormal" = "inv_lognormal",
+                    "Lognormal" = "lognormal",
+                    "Exponential" = "exponential"
+                )
+            ),
         
-        sliderInput("activist_sigma",
-                    "Standard deviation among the activists",
-                    min = 0,
-                    max = 1,
-                    value = 0.1,
-                    step = 0.01),
-        
-        ), # ENd of the sidebarPanel
+        ), # End of the sidebarPanel
 
-        # Show a plot of the generated distribution
+        
         mainPanel(
             
+            verbatimTextOutput("debug"),
             tableOutput("result_table"),
             plotOutput("density_plot"),
             plotOutput("profit_plot"),
@@ -110,12 +111,42 @@ ui <- fluidPage(
 
 server <- function(input, output) {
     
+    
+    ###### PRINT FOR DEBUG #######
+    
+    output$debug = renderText({
+        #compute_monopolist_price()
+        #20*input$cost
+        })
+    
+    output$base = renderTable({
+        base_dataset()
+    })
+    
+    ######## CONSTANTS #########
+    
     activist_mass = reactive({
         10^(-input$activist_log_mass)
     })
     passive_mass = reactive({
         1-10^(-input$activist_log_mass)
     })
+    
+    ########## VARIABLE USER INTERFACE ###########
+    
+    output$passive_additional_parameter = renderUI({
+        
+        if (input$passive_shape == "inv_lognormal"){
+            sliderInput(
+                "consumer_valuation_organic", 
+                label = "Consumer valuation of organic eggs",
+                min = 0, max = 5, value = 3.66, 
+                step = 0.01
+                )
+        }
+        
+    })
+    
     
     ########### DEMAND FUNCTIONS ###########
 
@@ -134,24 +165,17 @@ server <- function(input, output) {
                 density = function(x){dexp(x, rate = 1/input$activist_mean)},
                 cumulative = function(x){pexp(x, rate = 1/input$activist_mean, lower.tail = FALSE)}
             )
-        } else if (input$activist_shape == "truncated_gaussian"){
-            output_list = list(
-                density = function(x){
-                    dtruncnorm(a = 0, mean = input$activist_mean, sd = input$activist_sigma)},
-                cumulative = function(x){
-                    ptruncnorm(a = 0, mean = input$activist_mean, sd = input$activist_sigma, lower.tail = FALSE)}
-            )
         } else { stop("Unknown shape for the activist distribution") }
     })
-    
+
     passive_demand = reactive({
         if (input$passive_shape == "lognormal"){
             output_list = list(
                 density = function(x){
-                    dlnorm(x, meanlog = log(input$passive_mean) - input$passive_sigma^2 / 2,
+                    dlnorm(x, meanlog = input$passive_mean,
                            sdlog = input$passive_sigma)},
                 cumulative = function(x){
-                    plnorm(x, meanlog = log(input$passive_mean) - input$passive_sigma^2 / 2,
+                    plnorm(x, meanlog = input$passive_mean,
                            sdlog = input$passive_sigma, lower.tail = FALSE)}
             )
         } else if (input$passive_shape == "exponential") {
@@ -159,37 +183,45 @@ server <- function(input, output) {
                 density = function(x){dexp(x, rate = 1/input$passive_mean)},
                 cumulative = function(x){pexp(x, rate = 1/input$passive_mean, lower.tail = FALSE)}
             )
-        } else if (input$passive_shape == "truncated_gaussian"){
+        } else if (input$passive_shape == "inv_lognormal"){
             output_list = list(
                 density = function(x){
-                    dtruncnorm(a = 0, mean = input$passive_mean, sd = input$passive_sigma)},
+                    dlnorm(input$consumer_valuation_organic / x, meanlog = input$passive_mean,
+                       sdlog = input$passive_sigma) * input$consumer_valuation_organic / x^2},
                 cumulative = function(x){
-                    ptruncnorm(a = 0, mean = input$passive_mean, sd = input$passive_sigma, lower.tail = FALSE)}
+                    plnorm(input$consumer_valuation_organic / x, meanlog = input$passive_mean,
+                           sdlog = input$passive_sigma)}
+                # The absence of lower.tail = FALSE is normal
             )
         } else { stop("Unknown shape for the passive distribution") }
     })
-    
+
     base_dataset = reactive({
-        
+
         activist_list = activist_demand()
         passive_list = passive_demand()
+
+        nb_points = 500
+        #min_price = 3 * input$cost / 4
+        min_price = 0
+        max_price = 3 * input$cost
+        # data.frame(x = as.double(1:as.integer(1 + 20*nb_points*input$cost)/nb_points))
         
-        nb_points = 1000
-        data.frame(x = as.double(1:as.integer(1 + 20*nb_points*input$cost)/nb_points))%>%
+        data.frame(x = min_price + 1:nb_points * (max_price - min_price)/nb_points)%>%
             mutate(
                 activist_density = activist_list$density(x),
                 activist_cumulative = activist_list$cumulative(x),
-                
+
                 passive_density = passive_list$density(x),
                 passive_cumulative = passive_list$cumulative(x),
-                
-                total_density = 
+
+                total_density =
                     passive_mass() * passive_density +
                     activist_mass() * activist_density,
-                total_cumulative = 
+                total_cumulative =
                     passive_mass() * passive_cumulative +
                     activist_mass() * activist_cumulative,
-                
+
                 total_profit = total_cumulative * (x-input$cost),
                 passive_profit = passive_cumulative * (x-input$cost),
                 activist_profit = passive_profit
@@ -197,19 +229,15 @@ server <- function(input, output) {
             )
     })
     
-    # For debugging, this prints the main dataframe
-    #output$base = renderTable({base_dataset()})
     
+
     ########### PRICES ###############
     
     compute_monopolist_price = reactive({
 
         base_dataset()%>%
             filter(x > input$cost)%>%
-            mutate(
-                dist = abs(total_profit - max(total_profit))
-            )%>%
-            filter(dist < max(total_profit) * 10^(-5))%>%
+            arrange(-total_profit)%>%
             .$x%>%
             .[1]
 
@@ -218,37 +246,38 @@ server <- function(input, output) {
     compute_total_price = reactive({
         
         base_dataset()%>%
-            filter(x < compute_monopolist_price())%>%
+            filter(x > input$cost, x < compute_monopolist_price())%>%
             mutate(
                 y = (x - input$cost) * total_density / total_cumulative,
                 dist = abs(y - input$conduct_parameter)
             )%>%
-            filter( abs(dist - min(dist)) < min(dist) * 10^(-5) )%>% .$x%>% .[1]
+            arrange(dist)%>% .$x%>% .[1]
     })
     
     compute_passive_price = reactive({
         
         base_dataset()%>%
-            filter(x < compute_monopolist_price())%>%
+            filter(x > input$cost, x < compute_monopolist_price())%>%
             mutate(
                 y = (x - input$cost) * passive_density / passive_cumulative,
                 dist = abs(y - input$conduct_parameter)
             )%>%
-            filter( abs(dist - min(dist)) < min(dist) * 10^(-5) )%>% .$x%>% .[1]
+            arrange(dist)%>% .$x%>% .[1]
         
     })
     
     compute_activist_price = reactive({
         
         passive_price = compute_passive_price()
+        passive_price_profit = base_dataset()%>%
+            filter(x == passive_price)%>% .$passive_profit%>% .[1]
         
         base_dataset()%>%
-            filter(x < compute_monopolist_price())%>%
+            filter(x > input$cost, x < compute_monopolist_price())%>%
             mutate(
-                is_passive_price = abs(x - passive_price) < 10^(-5) * passive_price,
-                dist = abs(passive_profit + activist_mass() * (x - input$cost) - sum(is_passive_price * passive_profit) ),
+                dist = abs(passive_profit + activist_mass() * (x - input$cost) - passive_price_profit ),
             )%>%
-            filter( abs(dist - min(dist)) < min(dist) * 10^(-5) )%>% .$x%>% .[1]
+            arrange(dist)%>% .$x%>% .[1]
         
     })
     
@@ -259,7 +288,8 @@ server <- function(input, output) {
         base_dataset()%>%
             filter(
                 x > input$cost, 
-                x < 1.2 * compute_monopolist_price()
+                # x < 1.2 * compute_monopolist_price()
+                x < 1.2 * compute_total_price()
                 )
     })
     
@@ -268,31 +298,29 @@ server <- function(input, output) {
         passive_list = passive_demand()
         activist_list = activist_demand()
 
-        base_cost = 0.1
-        nb_digits = 5
+        nb_digits = 2
 
         data.frame(
-            Scenario = c("Total population", "Passive consumers only", "Total population with buycott"),
-            "Price of an organic egg (in euros)" = c(compute_total_price(), compute_passive_price(), compute_activist_price()) + base_cost,
-            "Change (in percent)" = c(
-                paste0(
-                    "From 1 to 3 : ",
-                    trunc(100 * (compute_activist_price() - compute_total_price()) / (base_cost + compute_total_price()), digits = nb_digits)
-                ),
-                paste0(
-                    "From 1 to 2 : ",
-                    trunc(100 * (compute_passive_price() - compute_total_price()) / (base_cost + compute_total_price()), digits = nb_digits)
-                ),
-                paste0(
-                    "From 2 to 3 : ",
-                    trunc( 100 * (compute_activist_price() - compute_passive_price()) / (base_cost + compute_passive_price()), digits = nb_digits)
-                )
+            Setting = c("Total population", "Passive consumers only", "Total population with buycott"),
+            "Retail price (in €)" = c(compute_total_price(), compute_passive_price(), compute_activist_price()),
+            "Passive consumption (in %)" = 100 * c(
+                passive_list$cumulative(compute_total_price()),
+                passive_list$cumulative(compute_passive_price()),
+                passive_list$cumulative(compute_activist_price())
             ),
-            "Share of organic egg consumers (in %)" = c(
-                100 * (activist_mass() * activist_list$cumulative(compute_total_price()) +
-                           passive_mass() * passive_list$cumulative(compute_total_price())),
-                100 * passive_list$cumulative(compute_passive_price()),
-                100 * (activist_mass() + passive_list$cumulative(compute_activist_price()))
+            "Price change (in %)" = c(
+                paste0(
+                    "Total effect : ",
+                    round( 100 * (compute_activist_price() - compute_total_price()) / compute_total_price(), digits = nb_digits)
+                ),
+                paste0(
+                    "Overvaluation effect : ",
+                    round( 100 * (compute_passive_price() - compute_total_price()) / compute_total_price(), digits = nb_digits)
+                ),
+                paste0(
+                    "Boycott effect : ",
+                    round( 100 * (compute_activist_price() - compute_passive_price()) / compute_passive_price(), digits = nb_digits)
+                )
             ),
             check.names = FALSE
         )
@@ -300,9 +328,8 @@ server <- function(input, output) {
 
     output$density_plot <- renderPlot({
 
-        activist_list = activist_demand()
-        #total_list = total_demand()
         passive_list = passive_demand()
+        activist_list = activist_demand()
 
         ggplot(
             plot_range()%>%
@@ -318,7 +345,7 @@ server <- function(input, output) {
             geom_vline(xintercept = compute_total_price(), color = "purple")+
             xlab("Price") + ylab("Density")+
             scale_linetype_discrete(name = "")+
-            theme(legend.position = "bottom")
+            theme(legend.position = "bottom", axis.text.y = element_blank())
 
     })
 
@@ -340,15 +367,15 @@ server <- function(input, output) {
             geom_line(aes(y = lerner, linetype = "Lerner index"), size = 1)+
             #geom_line(aes(x, y = demand_elasticity, color = "Demand elasticity"))+
             #geom_line(aes(x, y = demand_elasticity, color = "Demand elasticity"))+
-            geom_line(aes(y = total_conduct, linetype = "Demand-elasticity-adjusted Lerner index"), size = 1, color = "purple")+
-            geom_line(aes(y = passive_conduct, linetype = "Demand-elasticity-adjusted Lerner index"), size = 1, color = "blue")+
+            geom_line(aes(y = total_conduct, linetype = "Adjusted Lerner index"), size = 1, color = "purple")+
+            geom_line(aes(y = passive_conduct, linetype = "Adjusted Lerner index"), size = 1, color = "blue")+
             geom_vline(xintercept = compute_passive_price(), color = "blue")+
             geom_vline(xintercept = compute_total_price(), color = "purple")+
             geom_hline(yintercept = input$conduct_parameter, color = "brown")+
             geom_hline(yintercept = 0)+
             scale_y_continuous(limits = c(0, 1))+
             xlab("Price") + ylab("Lerner index")+
-            theme(legend.position = "bottom")
+            theme(legend.position = "bottom", axis.text.y = element_blank())
 
     })
 
@@ -381,9 +408,9 @@ server <- function(input, output) {
                 * (compute_activist_price() - input$cost), 
                 size = 1
             )+
-            theme(legend.position = "bottom")+
+            theme(legend.position = "bottom", axis.text.y = element_blank())+
             ylab("Profit")+ xlab("Price")+
-            scale_color_discrete("Scenario")
+            scale_color_discrete("Setting")
             
     })
     
