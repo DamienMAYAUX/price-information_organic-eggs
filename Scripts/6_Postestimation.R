@@ -22,10 +22,10 @@ apollo_modelOutput(model_nosale_lnorm_with_control)
 -model_nosale_with_control$estimate/model_nosale_with_control$estimate[["b_price"]] # - 0.175589617
 
 median_price_sensibility = exp(model_nosale_lnorm$estimate[["mu_lnorm"]])
-model_nosale_lnorm$estimate/median_price_sensibility # - 0.277500738
+model_nosale_lnorm$estimate/median_price_sensibility # - 0.2720228153
 
 median_price_sensibility = exp(model_nosale_lnorm_with_control$estimate[["mu_lnorm"]])
-model_nosale_lnorm_with_control$estimate/median_price_sensibility # - 0.289264380
+model_nosale_lnorm_with_control$estimate/median_price_sensibility # - 0.284381017
 
 value_organic_egg_lnorm = 
   model_nosale_lnorm$estimate[["b_labelbio"]]+
@@ -58,7 +58,7 @@ ggplot(
   geom_vline(xintercept = 0.345)+
   geom_vline(xintercept = 0.15, linetype = "dashed")+
   scale_colour_discrete("Model specification")+
-  xlab("Willingness to pay for organic product")+
+  xlab("Willingness to pay for organic eggs")+
   ylab("Estimated consumer density")+
   labs(
     caption = "The dashed vertical line indicates the production cost
@@ -85,150 +85,196 @@ apollo_basTest(model_nosale_with_control, model_nosale_lnorm_with_control)
 
 #### BAYESIAN POSTERIORS ANALYSIS
 
-# ## Loading model inputs
-# nb_halton_draw = 50
-# nb_core = 3
-# apollo_initialise()
-# base_beta = c(
-#   "b_medium" = 0,
-#   "b_low" = 0,
-#   "b_indep" = 0,
-#   "b_high" = 0,
-#   "b_other" = 0,
-#   "b_labelbio" = 0,
-#   "b_labelpleinair" = 0,
-#   "b_nolabel" = 0,
-#   "b_calibreL" = 0,
-#   "b_calibreM" = 0,
-#   "b_valqvol" = 0
-# )
-# database_before_merge = as.data.frame(readRDS("Inputs/choice_situation_with_nosale_for_apollo.rds"))
-# df_product = as.data.frame(readRDS("Inputs/product_with_nosale.rds"))%>%
-#   select(marque_simple, calibre, label)%>%
-#   mutate_all(as.character)
-# rep_nb = as.integer(nrow(database_before_merge) / (nrow(df_product) + 1))
-# res_nb = as.integer(nrow(database_before_merge) %% (nrow(df_product) + 1))
-# database = database_before_merge%>%
-#   mutate(
-#     marque_simple = 
-#       c(
-#         rep(c(df_product$marque_simple, NA_character_), rep_nb),
-#         as.character(df_product$marque_simple)[1:res_nb]
-#       ),
-#     label = 
-#       c(
-#         rep(c(df_product$label, NA_character_), rep_nb),
-#         df_product$label[1:res_nb]
-#       ),
-#     calibre = 
-#       c(
-#         rep(c(df_product$calibre, NA_character_), rep_nb),
-#         df_product$calibre[1:res_nb]
-#       ),
-#   )%>%
-#   mutate_at(vars(marque_simple, label, calibre), as.factor)
-# apollo_control = list(
-#   mixing = TRUE,
-#   modelName = "nosale_lnorm_with_control",
-#   modelDescr = "",
-#   indivID = "hhid",
-#   workInLogs = FALSE,
-#   nCores = nb_core
-# )
-# apollo_beta = c(
-#   base_beta,
-#   "b_nosale" = 0,
-#   "mu_lnorm" = -3,
-#   "sigma_lnorm" = 0,
-#   "b_control" = 0
-# )
-# apollo_fixed = c("b_nosale", "b_medium", "b_nolabel", "b_calibreM")
-# apollo_draws = list(
-#   interNormDraws = c("draws_norm_lognorm"),
-#   interDrawsType = "halton",
-#   interNDraws = nb_halton_draw
-# )
-# apollo_randCoeff = function (apollo_beta , apollo_inputs) {
-#   randcoeff = list()
-#   randcoeff[["b_price"]] = - exp(mu_lnorm + sigma_lnorm*draws_norm_lognorm)
-#   return (randcoeff)
-# }
-# apollo_inputs=apollo_validateInputs()
-# apollo_probabilities = function(apollo_beta, apollo_inputs, functionality="estimate"){
-#   apollo_attach( apollo_beta, apollo_inputs)
-#   on.exit( apollo_detach( apollo_beta, apollo_inputs) )
-#   P = list()
-#   good_label = (label[cumsum(is.na(label)) > 0])[2:sum(cumsum(is.na(label)) > 0)]
-#   good_marque_simple = (marque_simple[cumsum(is.na(marque_simple)) > 0])[2:sum(cumsum(is.na(marque_simple)) > 0)]
-#   good_calibre = (calibre[cumsum(is.na(calibre)) > 0])[2:sum(cumsum(is.na(calibre)) > 0)]
-#   residual_label = (good_label[cumsum(is.na(good_label)) > 0])[2:sum(cumsum(is.na(good_label)) > 0)]
-#   J = length(good_label)- length(residual_label) - 1
-#   V = list()
-#   for(j in 1:J) V[[paste0("alt",j)]] =
-#     get( paste0("b_", good_label[j])) +
-#     get( paste0("b_", good_marque_simple[j])) +
-#     get( paste0("b_", good_calibre[j])) +
-#     b_price * get(paste0(j, "_price")) +
-#     b_control * get(paste0(j, "_control")) +
-#     b_valqvol * get(paste0(j, "_valqvol"))
-#   mnl_settings = list(
-#     alternatives  = setNames(1:J, names(V)),
-#     avail         = setNames(apollo_inputs$database[,paste0(1:J, "_price_avl")], names(V)),
-#     choiceVar     = choice,
-#     V             = V
-#   )
-#   P[["model"]] = apollo_mnl(mnl_settings , functionality)
-#   P = apollo_panelProd(P, apollo_inputs , functionality)
-#   P = apollo_avgInterDraws(P, apollo_inputs , functionality)
-#   P = apollo_prepareProb(P, apollo_inputs , functionality)
-#   return(P)
-# }
-# 
-# ## Conditionals
-# 
-# conditionals = apollo_conditionals(model_nosale_lnorm_with_control, apollo_probabilities, apollo_inputs)
-# 
-# posterior = conditionals%>%
-#   mutate(
-#     price_sensibility = 
-#    wtp = - model_nosale_lnorm_with_control$estimate["b_labelbio"] / post.mean
-#   )%>%
-#   left_join(
-#     household_extended,
-#     by = c("ID"=  "hhid")
-#   )
-# 
-# saveRDS(posterior, "Inputs/posterior_nosale_lnorm_with_control.rds")
+conditionnals = readRDS("Inputs/conditionals_lnorm_with_control.rds")
+household = readRDS("Inputs/household.rds")
+consumption = readRDS("Inputs/shopping_trips_without_nosale.rds")
 
-conditionnals = readRDS("Inputs/conditionnals_lnorm.rds")
+household_organic_share = consumption%>%
+  group_by(hhid)%>%
+  summarise(share_bio = sum(label == "labelbio")/n() )
 
 posterior = conditionnals%>%
+  left_join(household, by = c("ID" = "hhid"))%>%
+  rename(
+    hhid = ID,
+    price_sensibility = post.mean
+    )%>%
   mutate(
-    wtp = value_organic_egg_lnorm_with_control/post.mean,
-    min_age2 = min_age * min_age 
-    )
+    wtp = -value_organic_egg_lnorm_with_control/price_sensibility,
+    min_age2 = max_age * max_age 
+    )%>%
+  left_join(household_organic_share)
+  
+
+# Regressions
 
 fit_posterior_demographics = lm(
-  -post.mean ~ clas + cycle + habi_inra,
+  -price_sensibility ~ rve + habi_inra,
   data = posterior
 )
+
 stargazer(
   fit_posterior_demographics,
-  type = "text",
-  #type = "html"
+  type = "latex"
   )
-# A EXPORTER, CORRIGER, INTEGRER
 
+
+# Figures
 
 ggplot(
   posterior,
-  aes(x = -wtp)
+  aes(x = wtp)
 )+
   geom_density()+
   scale_x_continuous(limits = c(0, 0.5))
 
+table_segment = posterior%>%
+  mutate(
+    yhes_dummy = young_highly_educated_single,
+    epmhi_dummy = educated_parents_middle_high_income,
+    peak2_dummy = (wtp > 2),
+    peak1_dummy = (wtp > 1),
+    share80_dummy = (share_bio > 0.8),
+    share10_dummy = (share_bio > 0.1),
+    all_dummy = TRUE
+  )%>%
+  group_by(all_dummy)%>%
+  mutate(
+    all_mass = n()/3899,
+    all_wtp_mean = mean(wtp),
+    all_wtp_logmean = mean(log(wtp)),
+    all_wtp_sd = sd(wtp),
+    all_wtp_logsd = sd(log(wtp)),
+    all_organic_share = mean(share_bio)
+  )%>%
+  ungroup()%>%
+  group_by(peak2_dummy)%>%
+  mutate(
+    peak2_mass = n()/3899,
+    peak2_wtp_mean = mean(wtp),
+    peak2_wtp_logmean = mean(log(wtp)),
+    peak2_wtp_sd = sd(wtp),
+    peak2_wtp_logsd = sd(log(wtp)),
+    peak2_organic_share = mean(share_bio)
+  )%>%
+  ungroup()%>%
+  group_by(peak1_dummy)%>%
+  mutate(
+    peak1_mass = n()/3899,
+    peak1_wtp_mean = mean(wtp),
+    peak1_wtp_logmean = mean(log(wtp)),
+    peak1_wtp_sd = sd(wtp),
+    peak1_wtp_logsd = sd(log(wtp)),
+    peak1_organic_share = mean(share_bio)
+  )%>%
+  ungroup()%>%
+  group_by(share80_dummy)%>%
+  mutate(
+    share80_mass = n()/3899,
+    share80_wtp_mean = mean(wtp),
+    share80_wtp_logmean = mean(log(wtp)),
+    share80_wtp_sd = sd(wtp),
+    share80_wtp_logsd = sd(log(wtp)),
+    share80_organic_share = mean(share_bio)
+  )%>%
+  ungroup()%>%
+  group_by(share10_dummy)%>%
+  mutate(
+    share10_mass = n()/3899,
+    share10_wtp_mean = mean(wtp),
+    share10_wtp_logmean = mean(log(wtp)),
+    share10_wtp_sd = sd(wtp),
+    share10_wtp_logsd = sd(log(wtp)),
+    share10_organic_share = mean(share_bio)
+  )%>%
+  ungroup()%>%
+  group_by(yhes_dummy)%>%
+  mutate(
+    yhes_mass = n()/3899,
+    yhes_wtp_mean = mean(wtp),
+    yhes_wtp_logmean = mean(log(wtp)),
+    yhes_wtp_sd = sd(wtp),
+    yhes_wtp_logsd = sd(log(wtp)),
+    yhes_organic_share = mean(share_bio)
+  )%>%
+  ungroup()%>%
+  group_by(epmhi_dummy)%>%
+  mutate(
+    epmhi_mass = n()/3899,
+    epmhi_wtp_mean = mean(wtp),
+    epmhi_wtp_logmean = mean(log(wtp)),
+    epmhi_wtp_sd = sd(wtp),
+    epmhi_wtp_logsd = sd(log(wtp)),
+    epmhi_organic_share = mean(share_bio)
+  )%>%
+  ungroup()%>%
+  select(
+    contains(c("all", "share80", "share10", "peak2", "peak1", "yhes", "epmhi"))
+    )%>%
+  # Creates an appropriate table
+  unique()%>%
+  drop_na()%>%
+  pivot_longer(
+    cols = contains("dummy"),
+    names_to = "subset",
+    values_to = "dummy"
+  )%>%
+  mutate(
+    subset = gsub("_dummy", "", subset)
+  )%>% 
+  pivot_longer(
+    cols = !contains(c("dummy", "subset", "dummy")),
+    names_to = "statistic"
+    )%>% 
+  filter(str_detect(statistic, subset))%>%
+  unique()%>%
+  mutate(
+    statistic = gsub("^[^_]*_", "", statistic)
+  )%>%
+  arrange(subset, dummy, statistic)%>%
+  select(subset, dummy, statistic, value)%>%
+  pivot_wider(names_from = statistic, values_from = value)
+
+stargazer(table_segment, summary = FALSE)
 
 
+
+ggplot(
+  posterior,
+)+
+  geom_histogram(aes(x = share_bio), binwidth = 0.05)+
+  scale_x_continuous(name = "Share of organic egg purchases by the household")+
+  scale_y_continuous(name = "Number of households", limits = c(0,250))+
+  labs(caption = "2732 households (70%) that never purchase organic eggs are not represented here")
+
+posterior%>%
+  filter(share_bio < 0.05)%>%
+  nrow()
+2864/3899
+
+ggsave(
+  device = "png", 
+  file = "Outputs/share_bio_household.png", 
+  units = "cm",
+  width = 15,
+  height = 15
+)
+
+ggplot(
+  posterior,
+)+
+  geom_histogram(aes(x = wtp), binwidth = 0.1)+
+  scale_x_continuous(name = "Willingness to pay for organic eggs", limits = c(0,4))+
+  scale_y_log10(name = "Number of households")+
+  labs(caption = "The vertical scale is logarithmic")
+
+ggsave(
+  device = "png", 
+  file = "Outputs/wtp_household.png", 
+  units = "cm",
+  width = 20,
+  height = 15
+)
 
 
 
@@ -356,16 +402,7 @@ predicted_market_shares = forecast%>%
 #### WHO CONSUMES ORGANIC PRODUCTS ?
 
 household = readRDS("Inputs/household.rds")
-consumption = readRDS("Inputs/shopping_trips_without_nosale.rds")
 
-household_extended = consumption%>%
-  group_by(hhid)%>%
-  summarise(share_bio = sum(label == "labelbio")/n() )%>%
-  left_join(household, by = "hhid")%>%
-  left_join(conditionals, by = c("hhid" = "ID"))%>%
-  rename(posterior = post.mean)%>%
-  drop_na(posterior)%>%
-  mutate(wtp = -coeff_bio/posterior)
 
 hist(
   household_extended%>% 
@@ -403,4 +440,6 @@ ggplot(
 
 
 
+     
+     
      

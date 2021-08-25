@@ -5,7 +5,7 @@ account: dmayaux
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 4351857
-bundleId: 4786601
+bundleId: 4961780
 url: https://dmayaux.shinyapps.io/simulation_price/
-when: 1625439096.42455
-lastSyncTime: 1625439096.42455
+when: 1629883154.1346
+lastSyncTime: 1629883154.1346
