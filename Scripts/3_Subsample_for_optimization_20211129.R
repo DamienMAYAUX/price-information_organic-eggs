@@ -123,13 +123,13 @@ saveRDS(choice_situation_without_nosale_for_estimation, "Inputs/choice_situation
 
 #### STEP 4 : MAKE UP FOR APOLLO
 
-# consumption_completed_with_nosale = readRDS("Inputs/shopping_trips_with_nosale_for_estimation.rds")
-# consumption_completed_without_nosale = readRDS("Inputs/shopping_trips_without_nosale_for_estimation.rds")
+# consumption_completed_with_nosale = readRDS("Inputs/shopping_trips_with_nosale_for_estimation_20211129.rds")
+# consumption_completed_without_nosale = readRDS("Inputs/shopping_trips_without_nosale_for_estimation_20211129.rds")
 # 
 # choice_situation_with_nosale_for_estimation =
-#   readRDS("Inputs/choice_situation_with_nosale_for_estimation.rds")
+#   readRDS("Inputs/choice_situation_with_nosale_for_estimation_20211129.rds")
 # choice_situation_without_nosale_for_estimation =
-#   readRDS("Inputs/choice_situation_without_nosale_for_estimation.rds")
+#   readRDS("Inputs/choice_situation_without_nosale_for_estimation_20211129.rds")
 
 df_product_with_nosale = consumption_completed_with_nosale%>%
   select(marque, marque_simple, calibre, label, valqvol, retailer)%>%
@@ -175,7 +175,7 @@ choice_situation_with_nosale_for_apollo = choice_situation_with_nosale_for_estim
     names_sort = TRUE
   )%>%
   mutate(across(ends_with('price'), list(avl = ~as.numeric(!is.na(.))), "{.col}_{.fn}"))
-
+# OU SONT LES DUPLICATES ?
 
 choice_situation_without_nosale_for_apollo = choice_situation_with_nosale_for_estimation%>%
   filter(marque_simple != "nosale", marque_simple_chosen != "nosale")%>%
@@ -203,12 +203,12 @@ choice_situation_without_nosale_for_apollo = choice_situation_with_nosale_for_es
 
 saveRDS(
   choice_situation_with_nosale_for_apollo,
-  "Inputs/choice_situation_with_nosale_for_apollo.rds"
+  "Inputs/choice_situation_with_nosale_for_apollo_20211129.rds"
 )
 
 saveRDS(
   choice_situation_without_nosale_for_apollo,
-  "Inputs/choice_situation_without_nosale_for_apollo.rds"
+  "Inputs/choice_situation_without_nosale_for_apollo_20211129.rds"
   )
 
 
