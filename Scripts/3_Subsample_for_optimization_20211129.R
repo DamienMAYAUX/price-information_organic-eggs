@@ -122,7 +122,7 @@ saveRDS(choice_situation_without_nosale_for_estimation, "Inputs/choice_situation
 
 
 #### STEP 4 : MAKE UP FOR APOLLO
-
+# 
 # consumption_completed_with_nosale = readRDS("Inputs/shopping_trips_with_nosale_for_estimation_20211129.rds")
 # consumption_completed_without_nosale = readRDS("Inputs/shopping_trips_without_nosale_for_estimation_20211129.rds")
 # 
@@ -148,7 +148,8 @@ df_product_without_nosale = consumption_completed_without_nosale%>%
   mutate(product_number = 1:n())%>%
   ungroup()%>%
   select(-constant)
-  
+  ### CEST LE FAIT D'AVOIR MIS LE RETAILER ICI QUI POSE PB !
+  ### ET LE FAIT D'AVOIR ECREME LA BASE APRES AVOIR CONSTRUIT LE CHOICE SETS !
 
 saveRDS(df_product_with_nosale, "Inputs/product_with_nosale_20211129.rds")
 saveRDS(df_product_without_nosale, "Inputs/product_without_nosale_20211129.rds")
@@ -161,6 +162,10 @@ choice_situation_with_nosale_for_apollo = choice_situation_with_nosale_for_estim
     choice = max(choice * product_number)
   )%>%
   ungroup()%>%
+  select(
+    X, hhid, choice, 
+    retailer, marque_simple, label, calibre, valqvol, price, control, product_number
+    )%>%
   mutate_at(vars(X, hhid, choice, valqvol), ~as.integer(as.character(.)))%>%
   mutate_at(vars(price, control), as.numeric)%>%
   pivot_wider(
@@ -171,13 +176,16 @@ choice_situation_with_nosale_for_apollo = choice_situation_with_nosale_for_estim
       price,
       control
     ),
+    values_fn = length,
     names_glue = "{product_number}_{.value}",
     names_sort = TRUE
-  )%>%
-  mutate(across(ends_with('price'), list(avl = ~as.numeric(!is.na(.))), "{.col}_{.fn}"))
+  )
+
+# %>%
+#   mutate(across(ends_with('price'), list(avl = ~as.numeric(!is.na(.))), "{.col}_{.fn}"))
 # OU SONT LES DUPLICATES ?
 
-choice_situation_without_nosale_for_apollo = choice_situation_with_nosale_for_estimation%>%
+choice_situation_without_nosale_for_apollo = choice_situation_without_nosale_for_estimation%>%
   filter(marque_simple != "nosale", marque_simple_chosen != "nosale")%>%
   left_join(df_product_without_nosale)%>%
   group_by(X)%>%
@@ -215,10 +223,10 @@ saveRDS(
 
 #### STEP 5 : CREATE A SMALLER BASE FOR TESTING PURPOSES
 
-# choice_situation_without_nosale_for_apollo =
-#   readRDS("Inputs/choice_situation_without_nosale_for_apollo.rds")
 # choice_situation_with_nosale_for_apollo =
-#   readRDS("Inputs/choice_situation_with_nosale_for_apollo.rds")
+#   readRDS("Inputs/choice_situation_with_nosale_for_apollo_20211129.rds")
+# choice_situation_without_nosale_for_apollo =
+#   readRDS("Inputs/choice_situation_without_nosale_for_apollo_20211129.rds")
 
 choice_situation_with_nosale_for_apollo_testing = 
   choice_situation_with_nosale_for_apollo%>%
@@ -240,12 +248,12 @@ choice_situation_without_nosale_for_apollo_testing =
 
 saveRDS(
   choice_situation_with_nosale_for_apollo_testing,
-  "Inputs/choice_situation_with_nosale_for_apollo_testing.rds"
+  "Inputs/choice_situation_with_nosale_for_apollo_testing_20211129.rds"
 )
 
 saveRDS(
   choice_situation_without_nosale_for_apollo_testing,
-  "Inputs/choice_situation_without_nosale_for_apollo_testing.rds"
+  "Inputs/choice_situation_without_nosale_for_apollo_testing_20211129.rds"
 )
 
 

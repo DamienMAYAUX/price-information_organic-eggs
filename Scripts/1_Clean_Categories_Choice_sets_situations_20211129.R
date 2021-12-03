@@ -158,7 +158,13 @@ marque_bio_list = marque_bio_df%>%
   filter(total_sales>95)%>%
   .$marque%>%
   as.character()%>%
-  c(., "LUSTUCRU", "NETTO", "BABY COQUE", "REFLETS DE FRANCE", " OEUF DE NOS VILLAGES")%>%
+  c(., 
+    #"LUSTUCRU", 
+    "NETTO", 
+    #"BABY COQUE", 
+    "OEUF DE NOS VILLAGES",
+    "REFLETS DE FRANCE"
+    )%>%
   .[.!= "PETITJOUR"]%>%
   .[.!= "DUCLAIR"]
 
@@ -178,7 +184,9 @@ marque_pleinair_list = marque_pleinair_df%>%
   filter(total_sales>180)%>%
   .$marque%>%
   as.character()%>%
-  c(., "LUSTUCRU", "NETTO", "MONOPRIX", "MONOPRIX GOURMET")%>%
+  c(., 
+    #"LUSTUCRU", 
+    "NETTO", "MONOPRIX", "MONOPRIX GOURMET")%>%
   .[.!= "PETITJOUR"]%>%
   .[.!= "DUCLAIR"]
 
@@ -198,7 +206,11 @@ marque_nolabel_list = marque_nolabel_df%>%
   filter(total_sales>341)%>%
   .$marque%>%
   as.character()%>%
-  c(., "LUSTUCRU LES SELECTIONS", "MONOPRIX", "BABY COQUE")%>%
+  c(., 
+    #"LUSTUCRU LES SELECTIONS", 
+    #"BABY COQUE"
+    "MONOPRIX"
+    )%>%
   .[.!= "PETITJOUR"]%>%
   .[.!= "DUCLAIR"]
 
@@ -239,14 +251,14 @@ marques_mdd_high = c(
 )
 
 marques_indep = c(
-  "BABY COQUE",
-  "COCORETTE",
-  "OEUF DE NOS VILLAGES",
+  #"BABY COQUE",
+  #"COCORETTE",
+  #"OEUF DE NOS VILLAGES",
   "GAULOIS LE",
   "LOUE",
-  "LUSTUCRU",
-  "MATINES",
-  "BIO"
+  #"BIO",
+  #"LUSTUCRU",
+  "MATINES"
 )
 
 df_marques = data.frame(marque = marque_list, marque_simple = NA)%>%
@@ -274,6 +286,7 @@ consumption_cleaner5  = consumption_cleaner4%>%
     marque = ifelse(marque == "CASINO.BIO", "CASINO", marque)
   )%>%
   left_join(df_marques)%>%
+  filter(marque == "nosale" | (marque_simple != "other") )%>%
   mutate_at(vars(retailer, marque_simple, marque), as.factor)
 
 
@@ -331,7 +344,7 @@ df_retailer_set = consumption_cleaner6%>%
   count(hhid, retailer, periode)%>%
   select(-n)
 
-saveRDS(df_retailer_set, "Inputs/df_hhid_retailer_set.rds")
+saveRDS(df_retailer_set, "Inputs/df_hhid_retailer_set_20211129.rds")
   
 # df_retailer_set%>%
 #   count(retailer, periode)
