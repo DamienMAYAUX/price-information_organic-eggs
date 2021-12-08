@@ -17,7 +17,7 @@ df_price = readRDS("Inputs/product_price_20211129.rds")
 choice_situation_with_nosale_for_estimation =
   readRDS("Inputs/choice_situation_with_nosale_for_estimation_20211129.rds")
 
-consumption = readRDS("Inputs/shopping_trips_without_nosale.rds")
+consumption = readRDS("Inputs/shopping_trips_with_nosale.rds")
 
 
 # Average prices observed in the data, the price list by default
@@ -357,7 +357,7 @@ determine_costs = function(model, retailer_price_list){
   
   # On resout le system C = P + Omega^-1 D
   absolute_margin = solve(omega, relevant_demand)
-  cost_list = relevant_retailer_price + absolute_margin%>% .[order(.)]
+  cost_list = relevant_retailer_price + absolute_margin
   
   return(cost_list)
   
@@ -365,8 +365,14 @@ determine_costs = function(model, retailer_price_list){
 
 # cost_list = determine_costs(model, retailer_price_list)
 # saveRDS(cost_list, "Inputs/cost_list.rds")
-
-
+# cost_list = readRDS("Inputs/cost_list.rds")
+# extended_cost_list = df_product_with_nosale%>%
+#   filter(marque != "nosale")%>%
+#   mutate(cost = cost_list)%>%
+#   right_join(df_product_with_nosale)%>%
+#   arrange(product_number)%>%
+#   .$cost
+  
 
 ## FINDING AN OPTIMAL RETAIL-SPECIFIC BOYCOTT PRICE
 
@@ -395,29 +401,101 @@ activist_price_list = df_product_with_nosale%>%
   )%>%
   .$price
 
-for (retailer in retailer_list){
+
+database_original = generate_database(retailer_price_list)
+
+
+for (retailer_considered in retailer_list){
   
-  relevant_households = 
-  relevant_products = 
+  # retailer_considered = "43_4"
   
-  database
+  retailer_specific_shopping_trip_list = consumption%>%
+    select(X, periode, hhid)%>%
+    right_join(
+      df_hhid_retailer%>% filter(retailer == retailer_considered)
+    )%>% 
+    .$X
   
-  retailer_specific_demand = function(retailer_specific_price){
+  retailer_specific_product_list = df_product_with_nosale%>%
+    filter(retailer == retailer_considered)%>%
+    select(product_number, retailer)%>%
+    .$product_number
+  
+  retailer_specific_database = database_original%>%
+    filter(X %in% retailer_specific_shopping_trip_list)
+  
+  retailer_specific_price_list_init = retailer_price_list[retailer_specific_product_list]
+  
+  retailer_specific_demand = function(retailer_specific_price_list){
     
-    database <<- database_original%>%
-      mutate_at(vars(paste0(i, "_price")), ~.+price_change)
+    # retailer_specific_price_list = retailer_specific_price_list_init
+    
+    for (i in 1:length(retailer_specific_price_list)){
+      database <<- database_original%>%
+        mutate_at(vars(paste0(retailer_specific_product_list[i], "_price")), ~retailer_specific_price_list[i])
+    }
+      
     apollo_inputs <<- apollo_validateInputs()
-    
+      
     forecast = apollo_prediction(
-      model,
-      apollo_probabilities,
-      apollo_inputs,
-      prediction_settings
-    )
+        model,
+        apollo_probabilities,
+        apollo_inputs,
+        prediction_settings
+      )
     
-  }
+    profit = forecast%>%
+      select(-ID, -Observation, -chosen)%>%
+      pivot_longer(
+        cols = 1:(length(forecast)-3),
+        names_to = "product_number",
+        values_to = "probability_sales" 
+      )%>%
+      group_by(product_number)%>%
+      summarize(
+        aggregate_sales = sum(probability_sales)
+      )%>%
+      mutate(
+        product_number = as.integer(gsub("alt", "", product_number)),
+      )%>% 
+      arrange(product_number)%>% 
+      filter(
+        product_number %in% retailer_specific_product_list
+        )%>%
+      left_join(
+        df_product_with_nosale%>%
+          select(product_number, valqvol)%>%
+          mutate(valqvol = as.integer(as.character(valqvol)))
+        )%>%
+      mutate(
+        price = retailer_specific_price_list,
+        cost = extended_cost_list[retailer_specific_product_list],
+        sales_profit = (price-cost)*aggregate_sales*valqvol
+        )%>%
+      filter(price != 0)%>%
+      .$sales_profit%>%
+      sum(.)
+      
+    return(as.numeric(profit))
+    }
+    
+  retailer_specific_demand(retailer_specific_price_list_init)
   
+  start_time = Sys.time()
   
+  optim_result = optim(
+    # lower = rep(0.05, length(retailer_specific_price_list_init)),
+    # upper = rep(1, length(retailer_specific_price_list_init)),
+    # method = "L-BFGS-B",
+    par = retailer_specific_price_list_init, 
+    fn = retailer_specific_demand
+  )
+  
+  end_time = Sys.time()
+  
+  print(paste("Optimization duration for retailer", retailer_considered))
+  print(end_time-start_time)
+    
 }
 
 
