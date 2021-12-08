@@ -483,12 +483,17 @@ for (retailer_considered in retailer_list){
   
   start_time = Sys.time()
   
+  control_parameters = list(
+    trace = TRUE
+  )
+  
   optim_result = optim(
     # lower = rep(0.05, length(retailer_specific_price_list_init)),
     # upper = rep(1, length(retailer_specific_price_list_init)),
     # method = "L-BFGS-B",
     par = retailer_specific_price_list_init, 
-    fn = retailer_specific_demand
+    fn = retailer_specific_demand, 
+    control = control_parameters
   )
   
   end_time = Sys.time()
