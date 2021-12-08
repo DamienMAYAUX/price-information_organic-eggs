@@ -283,7 +283,10 @@ consumption_cleaner5  = consumption_cleaner4%>%
     marque = ifelse(marque == "U.BIO U", "U", marque),
     marque = ifelse(marque == "MONOPRIX BIO", "MONOPRIX", marque),
     marque = ifelse(marque == "CARREFOUR.BIO", "CARREFOUR", marque),
-    marque = ifelse(marque == "CASINO.BIO", "CASINO", marque)
+    marque = ifelse(marque == "CASINO.BIO", "CASINO", marque),
+    marque = ifelse(marque == "AUCHAN.PP POUCE", "AUCHAN", marque),
+    marque = ifelse(marque == "CARREFOUR.DISCOUNT", "CARREFOUR", marque),
+    marque = ifelse(marque == "MONOPRIX GOURMET", "MONOPRIX", marque)
   )%>%
   left_join(df_marques)%>%
   filter(marque == "nosale" | (marque_simple != "other") )%>%
@@ -337,6 +340,7 @@ consumption_cleaner6 =
     vars(X, hhid), as.integer
   )
 
+# consumption_cleaner6%>% select(marque)%>% unique()%>% View()
 
   ## STEP 6 BIS : RETAILER SET DEFINITION
 

@@ -6,8 +6,8 @@ start = Sys.time()
 
 #### STEP 1 : Keep only households with a large number of non-empty shopping trips 
 
-consumption_without_nosale = readRDS("Inputs/shopping_trips_without_nosale_20211129.rds")
 consumption_with_nosale = readRDS("Inputs/shopping_trips_with_nosale_20211129.rds")
+consumption_without_nosale = readRDS("Inputs/shopping_trips_without_nosale_20211129.rds")
 
 hhid_with_enough_period_with_visit = consumption_without_nosale%>%
   group_by(hhid, periode)%>%
@@ -122,7 +122,9 @@ saveRDS(choice_situation_without_nosale_for_estimation, "Inputs/choice_situation
 
 
 #### STEP 4 : MAKE UP FOR APOLLO
-# 
+
+# consumption_with_nosale = readRDS("Inputs/shopping_trips_with_nosale_20211129.rds")
+# consumption_without_nosale = readRDS("Inputs/shopping_trips_without_nosale_20211129.rds")
 # consumption_completed_with_nosale = readRDS("Inputs/shopping_trips_with_nosale_for_estimation_20211129.rds")
 # consumption_completed_without_nosale = readRDS("Inputs/shopping_trips_without_nosale_for_estimation_20211129.rds")
 # 
@@ -131,7 +133,7 @@ saveRDS(choice_situation_without_nosale_for_estimation, "Inputs/choice_situation
 # choice_situation_without_nosale_for_estimation =
 #   readRDS("Inputs/choice_situation_without_nosale_for_estimation_20211129.rds")
 
-df_product_with_nosale = consumption_completed_with_nosale%>%
+df_product_with_nosale = consumption_with_nosale%>%
   select(marque, marque_simple, calibre, label, valqvol, retailer)%>%
   unique()%>%
   mutate(constant = 1)%>%
@@ -140,7 +142,7 @@ df_product_with_nosale = consumption_completed_with_nosale%>%
   ungroup()%>%
   select(-constant)
   
-df_product_without_nosale = consumption_completed_without_nosale%>%
+df_product_without_nosale = consumption_without_nosale%>%
   select(marque, marque_simple, calibre, label, valqvol, retailer)%>%
   unique()%>%
   mutate(constant = 1)%>%
@@ -148,8 +150,6 @@ df_product_without_nosale = consumption_completed_without_nosale%>%
   mutate(product_number = 1:n())%>%
   ungroup()%>%
   select(-constant)
-  ### CEST LE FAIT D'AVOIR MIS LE RETAILER ICI QUI POSE PB !
-  ### ET LE FAIT D'AVOIR ECREME LA BASE APRES AVOIR CONSTRUIT LE CHOICE SETS !
 
 saveRDS(df_product_with_nosale, "Inputs/product_with_nosale_20211129.rds")
 saveRDS(df_product_without_nosale, "Inputs/product_without_nosale_20211129.rds")
@@ -176,14 +176,10 @@ choice_situation_with_nosale_for_apollo = choice_situation_with_nosale_for_estim
       price,
       control
     ),
-    values_fn = length,
     names_glue = "{product_number}_{.value}",
     names_sort = TRUE
-  )
-
-# %>%
-#   mutate(across(ends_with('price'), list(avl = ~as.numeric(!is.na(.))), "{.col}_{.fn}"))
-# OU SONT LES DUPLICATES ?
+  )%>%
+  mutate(across(ends_with('price'), list(avl = ~as.numeric(!is.na(.))), "{.col}_{.fn}"))
 
 choice_situation_without_nosale_for_apollo = choice_situation_without_nosale_for_estimation%>%
   filter(marque_simple != "nosale", marque_simple_chosen != "nosale")%>%
