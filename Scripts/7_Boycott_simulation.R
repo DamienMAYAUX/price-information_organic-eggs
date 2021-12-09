@@ -20,6 +20,15 @@ choice_situation_with_nosale_for_estimation =
 consumption = readRDS("Inputs/shopping_trips_with_nosale.rds")
 
 
+# df_product_reduced = df_product_with_nosale%>%
+#   filter(calibre %in% c("calibreM","nosale"))%>%
+#   select(label, retailer, marque_simple)%>%
+#   unique()%>%
+#   arrange(retailer, marque_simple, label)%>%
+#   rownames_to_column("reduced_product_number")%>%
+#   mutate_at(vars("reduced_product_number"), as.integer)
+
+
 # Average prices observed in the data, the price list by default
 retailer_price_list_test = df_price%>%
   group_by(label, calibre, marque, retailer, valqvol)%>%
@@ -34,6 +43,15 @@ retailer_price_list_test = df_price%>%
   )%>%
   arrange(product_number)%>%
   .$avg_price_across_period
+
+# retailer_price_list_test = df_price%>%
+#   left_join(df_product_reduced)%>%
+#   group_by(label, retailer, marque_simple, reduced_product_number)%>%
+#   summarise(
+#     avg_price_across_period = mean(avg_price)
+#   )
+  
+
 
 # Some possible boycott prices
 radical_activist_price_list = df_product_with_nosale%>%
@@ -306,9 +324,13 @@ generate_cross_product_price_derivative_matrix =
   
 }
 
-# cross_product_price_derivative_matrix_test = generate_cross_product_price_derivative_matrix(model, retailer_price_list_test)
+cross_product_price_derivative_matrix_test =
+  generate_cross_product_price_derivative_matrix(
+    model, 
+    retailer_price_list = retailer_price_list_test, 
+    price_change = -0.02
+    )
 # 11 min
-## PENSER A LA RETOURNER !
 # saveRDS(cross_product_price_derivative_matrix_test, "Inputs/cross_product_price_derivative_matrix.rds")
 # cross_product_price_derivative_matrix_test = readRDS("Inputs/cross_product_price_derivative_matrix.rds")
 
@@ -360,18 +382,17 @@ determine_costs = function(model, retailer_price_list){
   cost_list = relevant_retailer_price + absolute_margin
   
   return(cost_list)
-  
 }
 
 # cost_list = determine_costs(model, retailer_price_list)
 # saveRDS(cost_list, "Inputs/cost_list.rds")
 # cost_list = readRDS("Inputs/cost_list.rds")
-# extended_cost_list = df_product_with_nosale%>%
-#   filter(marque != "nosale")%>%
-#   mutate(cost = cost_list)%>%
-#   right_join(df_product_with_nosale)%>%
-#   arrange(product_number)%>%
-#   .$cost
+extended_cost_list = df_product_with_nosale%>%
+  filter(marque != "nosale")%>%
+  mutate(cost = cost_list)%>%
+  right_join(df_product_with_nosale)%>%
+  arrange(product_number)%>%
+  .$cost
   
 
 ## FINDING AN OPTIMAL RETAIL-SPECIFIC BOYCOTT PRICE
@@ -426,7 +447,7 @@ for (retailer_considered in retailer_list){
   
   retailer_specific_price_list_init = retailer_price_list[retailer_specific_product_list]
   
-  retailer_specific_demand = function(retailer_specific_price_list){
+  retailer_specific_profit = function(retailer_specific_price_list){
     
     # retailer_specific_price_list = retailer_specific_price_list_init
     
@@ -479,7 +500,7 @@ for (retailer_considered in retailer_list){
     return(as.numeric(profit))
     }
     
-  retailer_specific_demand(retailer_specific_price_list_init)
+  retailer_specific_profit(retailer_specific_price_list_init)
   
   start_time = Sys.time()
   
@@ -492,7 +513,7 @@ for (retailer_considered in retailer_list){
     # upper = rep(1, length(retailer_specific_price_list_init)),
     # method = "L-BFGS-B",
     par = retailer_specific_price_list_init, 
-    fn = retailer_specific_demand, 
+    fn = retailer_specific_profit, 
     control = control_parameters
   )
   
@@ -500,7 +521,8 @@ for (retailer_considered in retailer_list){
   
   print(paste("Optimization duration for retailer", retailer_considered))
   print(end_time-start_time)
-    
+  # Pour retailer = 43_4, 24 minutes, 511 appel a la fonction
+  # Tout ça pour juste vérifier qu'on est à l'équilibre...
 }
 
 
