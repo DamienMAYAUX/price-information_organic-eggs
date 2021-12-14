@@ -1,5 +1,5 @@
 
-setwd("C:/Users/d.mayaux/Documents/GitHub/price-information_organic-eggs")
+setwd("U:/price-information_organic-eggs")
 source("Scripts/0_Packages_Libraries.R")
 
 start = Sys.time()
