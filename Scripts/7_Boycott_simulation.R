@@ -1,12 +1,21 @@
 
 
-setwd("C:/Users/d.mayaux/Documents/GitHub/price-information_organic-eggs")
+if (Sys.info()["sysname"] == "Windows"){
+  setwd("U:/price-information_organic-eggs")
+} else {
+  setwd("~/U/price-information_organic-eggs")
+}
+
 source("Scripts/0_Packages_Libraries.R")
 
 start = Sys.time()
 
 model_name = "nosale_with_control"
+model_lnorm_name = "nosale_lnorm_with_control"
+
 model = apollo_loadModel(paste0("Inputs/Apollo/", model_name))
+model_lnorm = apollo_loadModel(paste0("Inputs/Apollo/", model_lnorm_name))
+
 
 df_product_with_nosale = readRDS("Inputs/product_with_nosale_20211129.rds")%>%
   mutate_at(vars(calibre, label, marque_simple), as.character)
@@ -87,7 +96,7 @@ hhid_top_organic_consumer_list = consumption%>%
 # Generates the database with the choice situations corresponding to the 
 # set of retailer prices and activist prices considered
 
-generate_database = function(retailer_price_list, activist_price_list = NULL, hhid_activist_list = NULL){
+generate_database = function(retailer_price_list, activist_price_list = NULL, hhid_activist_list = NULL, df_hhid_conditional = NULL){
 
   # retailer_price_list = retailer_price_list_test
   # activist_price_list = radical_activist_price_list
@@ -147,7 +156,7 @@ generate_database = function(retailer_price_list, activist_price_list = NULL, hh
   res_nb = as.integer(nrow(choice_situation_with_nosale_for_apollo) %% (nrow(df_product_with_nosale) + 1))
 
   database = as.data.frame(choice_situation_with_nosale_for_apollo)%>%
-    # On récupere les caracteristiques du produit
+    # On r?cupere les caracteristiques du produit
     mutate(
       marque_simple =
         c(
@@ -167,25 +176,126 @@ generate_database = function(retailer_price_list, activist_price_list = NULL, hh
     )%>%
     mutate_at(vars(marque_simple, label, calibre), as.factor)
 
+  if (!is.null(df_hhid_conditional)){
+    database = database%>%
+      left_join(df_hhid_conditional)
+  }
+  
   return(database)
-
+  
 }
 
+##### COMPUTE THE CONDITIONALS ! ######
+
+# database <<- generate_database(retailer_price_list_test)
+# 
+# apollo_beta <<- model_lnorm$apollo_beta
+# apollo_fixed <<- model_lnorm$apollo_fixed
+# apollo_control <<- model_lnorm$apollo_control
+# apollo_draws <<-model_lnorm$apollo_draws
+# apollo_randCoeff <<-model_lnorm$apollo_randCoeff
+# apollo_inputs <<- apollo_validateInputs()
+# apollo_probabilities <<- model_lnorm$apollo_probabilities
+# prediction_settings <<- list(silent = TRUE)
+# 
+# start_conditional = Sys.time()
+# 
+# conditionals = apollo_conditionals(
+#   model,
+#   apollo_probabilities,
+#   apollo_inputs
+#   )
+# 
+# end_conditional = Sys.time()
+# print("Computing the conditionals")
+# print(end_conditional - start_conditional)
+# Trente deux miutes sur le serveur distant
+#
+# saveRDS(conditionals, paste0("Inputs/Apollo/",model_lnorm_name, "_conditionals.rds"))
+
+conditionals = readRDS(paste0("Inputs/Apollo/",model_lnorm_name, "_conditionals.rds"))%>%
+  rename(hhid = ID, conditional = post.mean)
+
+#######################################
 
 
-## CREATE A FUNCTION THAT SIMULATES THE DEMAND FOR A GIVEN PRICE VECTOR
+# database <<- generate_database(retailer_price_list_test)
+# database <<- generate_database(retailer_price_list_test, df_hhid_conditional = conditionals)
 
-compute_demand = function(model, retailer_price_list, activist_price_list = NULL, hhid_activist_list = NULL){
+
+## SIMULATE THE DEMAND FOR A GIVEN PRICE VECTOR
+
+compute_demand = function(model, retailer_price_list, 
+                          activist_price_list = NULL, hhid_activist_list = NULL, 
+                          df_hhid_conditional = NULL){
   
-  # df_retailer_price = df_retailer_price_test
+  # retailer_price_list = retailer_price_list_test
+  # df_hhid_conditional = conditionals
+  # activist_price_list = NULL
+  # hhid_activist_list = NULL
   
-  database <<- generate_database(retailer_price_list, activist_price_list, hhid_activist_list)
+  database <<- generate_database(retailer_price_list, activist_price_list, hhid_activist_list, df_hhid_conditional)
   
   apollo_beta <<- model$apollo_beta
   apollo_fixed <<- model$apollo_fixed
   apollo_control <<- model$apollo_control
+  apollo_control$mixing <- FALSE
+  
+  # if (model$apollo_control$mixing & is.null(df_hhid_conditional)){
+  #   apollo_draws <<-model$apollo_draws
+  #   apollo_randCoeff <<-model$apollo_randCoeff
+  #   apollo_control$mixing <- TRUE
+  # } else {
+  #   
+  #   apollo_beta <<- model$apollo_beta
+  # }
+  
   apollo_inputs <<- apollo_validateInputs()
-  apollo_probabilities <<- model$apollo_probabilities
+  
+  if (is.null(df_hhid_conditional)){
+
+    apollo_probabilities <<- model$apollo_probabilities
+
+  } else {
+
+  apollo_probabilities <<-
+    function(apollo_beta, apollo_inputs, functionality="raw"){
+
+      apollo_attach( apollo_beta, apollo_inputs)
+      on.exit( apollo_detach( apollo_beta, apollo_inputs) )
+
+      P = list()
+
+      good_label = (label[cumsum(is.na(label)) > 0])[2:sum(cumsum(is.na(label)) > 0)]
+      good_marque_simple = (marque_simple[cumsum(is.na(marque_simple)) > 0])[2:sum(cumsum(is.na(marque_simple)) > 0)]
+      good_calibre = (calibre[cumsum(is.na(calibre)) > 0])[2:sum(cumsum(is.na(calibre)) > 0)]
+      residual_label = (good_label[cumsum(is.na(good_label)) > 0])[2:sum(cumsum(is.na(good_label)) > 0)]
+      J = length(good_label)- length(residual_label) - 1
+
+      V = list()
+      for(j in 1:J) V[[paste0("alt",j)]] =
+        get( paste0("b_", good_label[j])) +
+        get( paste0("b_", good_marque_simple[j])) +
+        get( paste0("b_", good_calibre[j])) +
+        conditional * get(paste0(j, "_price")) +
+        b_control * get(paste0(j, "_control")) +
+        b_valqvol * get(paste0(j, "_valqvol"))
+
+      mnl_settings = list(
+        alternatives  = setNames(1:J, names(V)),
+        avail         = setNames(apollo_inputs$database[,paste0(1:J, "_price_avl")], names(V)),
+        choiceVar     = choice,
+        V             = V
+      )
+
+      P[["model"]] = apollo_mnl(mnl_settings , functionality)
+      P = apollo_panelProd(P, apollo_inputs , functionality)
+      P = apollo_prepareProb(P, apollo_inputs , functionality)
+      return(P)
+    }
+  
+  }
+  
   prediction_settings <<- list(silent = TRUE)
   
   forecast = apollo_prediction(
@@ -215,7 +325,8 @@ compute_demand = function(model, retailer_price_list, activist_price_list = NULL
   return(demand)
 }
 
-# demand_function(model, df_retailer_price_test)
+# compute_demand(model, retailer_price_list_test)
+# compute_demand(model, retailer_price_list_test, df_hhid_conditional = conditionals)
 
 ## DISPLAYS SOME SUMMARY STATISTICS ON THE DEMAND
 demand_summary = function(demand){
@@ -240,6 +351,16 @@ demand_summary = function(demand){
   
 }
 
+# demand_summary( compute_demand(model, retailer_price_list_test) )
+
+# demand_summary(
+#   compute_demand(
+#     model, 
+#     retailer_price_list_test, 
+#     df_hhid_conditional = conditionals
+#     )
+# )
+
 ## TESTING DEMAND RESPONSE DURING A BOYCOTT
 
 demand_test = compute_demand(
@@ -256,12 +377,15 @@ demand_summary(demand_test)
 ## SIMULATING CROSS ELASTICITIES
 
 generate_cross_product_price_derivative_matrix = 
-  function(model, retailer_price_list, price_change = 0.01, activist_price_list = NULL, hhid_activist_list = NULL){
+  function(model, retailer_price_list, price_change = 0.01, 
+           activist_price_list = NULL, hhid_activist_list = NULL, 
+           precomputed_demand = NULL){
   
   start_time = Sys.time()
   
   product_nb = nrow(df_product_with_nosale)
   cross_product_price_derivative_matrix = matrix(data = 0, nrow = product_nb, ncol = product_nb)
+  
   demand = compute_demand(model, retailer_price_list)
   
   database_original <<- generate_database(retailer_price_list)
@@ -273,44 +397,37 @@ generate_cross_product_price_derivative_matrix =
   prediction_settings <<- list(silent = TRUE)
   
   # On itere selon le prix que l'on fait changer
-  # Cela revient à remplir ligne à ligne la matrice des elasticites
-  for (i in 1:product_nb){
-    
-    # i = 12 
+  # Cela revient a remplir ligne a ligne la matrice des elasticites
+  for (i in 1:product_nb) {
+    # i = 12
     print(paste("Computing column", i))
     
     # On ne calcule l'elasticite que par rapport au changement de prix d'un vrai produit
-    if (df_product_with_nosale[i,"marque"] != "nosale"){
-      
-      database <<- database_original%>%
-        mutate_at(vars(paste0(i, "_price")), ~.+price_change)
+    if (df_product_with_nosale[i, "marque"] != "nosale") {
+      database <<- database_original %>%
+        mutate_at(vars(paste0(i, "_price")), ~ . + price_change)
       apollo_inputs <<- apollo_validateInputs()
       
-      forecast = apollo_prediction(
-        model,
-        apollo_probabilities,
-        apollo_inputs,
-        prediction_settings
-      )
+      forecast = apollo_prediction(model,
+                                   apollo_probabilities,
+                                   apollo_inputs,
+                                   prediction_settings)
       
-      demand_modified = forecast%>%
-        select(-ID, -Observation, -chosen)%>%
+      demand_modified = forecast %>%
+        select(-ID,-Observation,-chosen) %>%
         pivot_longer(
-          cols = 1:(length(forecast)-3),
+          cols = 1:(length(forecast) - 3),
           names_to = "product_number",
-          values_to = "probability_sales" 
-        )%>%
-        group_by(product_number)%>%
-        summarize(
-          aggregate_sales = sum(probability_sales)
-        )%>%
-        mutate(
-          product_number = as.integer(gsub("alt", "", product_number))
-        )%>% 
-        arrange(product_number)%>% 
+          values_to = "probability_sales"
+        ) %>%
+        group_by(product_number) %>%
+        summarize(aggregate_sales = sum(probability_sales)) %>%
+        mutate(product_number = as.integer(gsub("alt", "", product_number))) %>%
+        arrange(product_number) %>%
         .$aggregate_sales
       
-      cross_product_price_derivative_matrix[i,] = (demand_modified-demand)/price_change
+      cross_product_price_derivative_matrix[i, ] = (demand_modified - demand) /
+        price_change
       
     }
   } 
@@ -324,15 +441,149 @@ generate_cross_product_price_derivative_matrix =
   
 }
 
-cross_product_price_derivative_matrix_test =
-  generate_cross_product_price_derivative_matrix(
-    model, 
-    retailer_price_list = retailer_price_list_test, 
-    price_change = -0.02
-    )
+
+# cross_product_price_derivative_matrix_test =
+#   generate_cross_product_price_derivative_matrix(
+#     model, 
+#     retailer_price_list = retailer_price_list_test, 
+#     price_change = -0.02
+#     )
 # 11 min
 # saveRDS(cross_product_price_derivative_matrix_test, "Inputs/cross_product_price_derivative_matrix.rds")
 # cross_product_price_derivative_matrix_test = readRDS("Inputs/cross_product_price_derivative_matrix.rds")
+
+
+## COIMPUTE ANALYTICALLY THE DEMAND AND CROSS-PRODUCT DERIVATIVE MATRIX 
+
+generate_cross_product_derivative_and_demand = 
+  function(model, retailer_price_list, 
+           activist_price_list = NULL, hhid_activist_list = NULL,
+           df_hhid_conditional = NULL){
+  
+  # retailer_price_list = retailer_price_list_test
+  # df_hhid_conditional = conditionals
+  # activist_price_list = NULL
+  # hhid_activist_list = NULL
+  
+  ## 1) Generate forecasts
+  
+  database <<- generate_database(retailer_price_list, activist_price_list, hhid_activist_list, df_hhid_conditional)
+  
+  apollo_beta <<- model$apollo_beta
+  apollo_fixed <<- model$apollo_fixed
+  apollo_control <<- model$apollo_control
+  apollo_control$mixing <- FALSE
+  
+  apollo_inputs <<- apollo_validateInputs()
+  
+  if (is.null(df_hhid_conditional)){
+    
+    apollo_probabilities <<- model$apollo_probabilities
+    
+  } else {
+    
+    apollo_probabilities <<-
+      function(apollo_beta, apollo_inputs, functionality="raw"){
+        
+        apollo_attach( apollo_beta, apollo_inputs)
+        on.exit( apollo_detach( apollo_beta, apollo_inputs) )
+        
+        P = list()
+        
+        good_label = (label[cumsum(is.na(label)) > 0])[2:sum(cumsum(is.na(label)) > 0)]
+        good_marque_simple = (marque_simple[cumsum(is.na(marque_simple)) > 0])[2:sum(cumsum(is.na(marque_simple)) > 0)]
+        good_calibre = (calibre[cumsum(is.na(calibre)) > 0])[2:sum(cumsum(is.na(calibre)) > 0)]
+        residual_label = (good_label[cumsum(is.na(good_label)) > 0])[2:sum(cumsum(is.na(good_label)) > 0)]
+        J = length(good_label)- length(residual_label) - 1
+        
+        V = list()
+        for(j in 1:J) V[[paste0("alt",j)]] =
+          get( paste0("b_", good_label[j])) +
+          get( paste0("b_", good_marque_simple[j])) +
+          get( paste0("b_", good_calibre[j])) +
+          conditional * get(paste0(j, "_price")) +
+          b_control * get(paste0(j, "_control")) +
+          b_valqvol * get(paste0(j, "_valqvol"))
+        
+        mnl_settings = list(
+          alternatives  = setNames(1:J, names(V)),
+          avail         = setNames(apollo_inputs$database[,paste0(1:J, "_price_avl")], names(V)),
+          choiceVar     = choice,
+          V             = V
+        )
+        
+        P[["model"]] = apollo_mnl(mnl_settings , functionality)
+        P = apollo_panelProd(P, apollo_inputs , functionality)
+        P = apollo_prepareProb(P, apollo_inputs , functionality)
+        return(P)
+      }
+    
+  }
+  
+  prediction_settings <<- list(silent = TRUE)
+  
+  forecast = apollo_prediction(
+    model,
+    apollo_probabilities,
+    apollo_inputs,
+    prediction_settings
+  )%>% .[[1]]
+  
+  ## Compute the product-level demand from the forecast
+  
+  product_weight = as.numeric(df_product_with_nosale$valqvol)
+  
+  demand_per_product = forecast%>%
+    select(-ID,-Observation,-chosen) %>%
+    pivot_longer(
+      cols = 1:(length(forecast) - 3),
+      names_to = "product_number",
+      values_to = "probability_sales"
+    ) %>%
+    group_by(product_number) %>%
+    summarize(aggregate_sales = sum(probability_sales)) %>%
+    mutate(product_number = as.integer(gsub("alt", "", product_number))) %>%
+    arrange(product_number) %>%
+    .$aggregate_sales  # * product_weight  # Prise en compte du nb d'oeufs par boite
+  
+  ## Compute the cross product elasticity matrix from the forecast
+  
+  product_nb = nrow(df_product_with_nosale)
+  
+  # Je calcule s_i(dirac_i_j - s_j) et je multiple par la taille du march?
+  # J'obtiens une matrix 302x302 pour chacune des 53601  observations, il faut sommer direct
+  product_share_matrix = forecast%>% 
+    select(starts_with("alt"))%>% 
+    mutate_all(as.numeric)%>%
+    as.matrix()%>%
+    Matrix(., sparse = TRUE)
+  
+  # nnzero(product_share_matrix) / (product_nb * nrow(product_share_matrix))
+  
+  # La formule de la d?riv?e de la proba de choix s_i par rapport au prix p_j est - s_i(dirac_i_j - s_j) 
+  cross_product_price_derivative_matrix = 
+    # On prend en compte le volume des produits ?
+    # Matrix(diag(product_weight), sparse = TRUE) %*% 
+    (
+      t(product_share_matrix) %*% (product_share_matrix) - 
+      # On rajoute, sur la diagonale, la somme de la colonne de la matrice initiale
+      diag( demand_per_product)
+      # pourquoi faire simple quand on peut faire complique ?
+      # diag( as.vector(t(as.matrix(rep(1, nrow(product_share_matrix)))) %*% product_share_matrix) )
+    )
+  
+  return( 
+    list(
+      demand = demand_per_product, 
+      matrix = cross_product_price_derivative_matrix
+      )
+  )
+  
+  }
+
+# tic("Demand estimation")
+# generate_cross_product_derivative_and_demand(model, retailer_price_list_test)$demand
+# toc()
 
 
 ## FINDING THE COSTS
@@ -340,9 +591,13 @@ cross_product_price_derivative_matrix_test =
 determine_costs = function(model, retailer_price_list){
   
   # On oublie les lignes et colonnes concernant le non-achat
-  cross_product_price_derivative_matrix = generate_cross_product_price_derivative_matrix(model, df_retailer_price)
-  
+  # cross_product_price_derivative_matrix = generate_cross_product_price_derivative_matrix(model, df_retailer_price)
   # cross_product_price_derivative_matrix = cross_product_price_derivative_matrix_test
+  # demand = compute_demand(model, retailer_price_list)
+  
+  demand_and_matrix = generate_cross_product_derivative_and_demand(model, retailer_price_list)
+  demand = demand_and_matrix$demand
+  cross_product_price_derivative_matrix = demand_and_matrix$matrix
   
   relevant_product_number_list = df_product_with_nosale%>%
     filter(marque != "nosale")%>%
@@ -350,8 +605,7 @@ determine_costs = function(model, retailer_price_list){
     .$product_number
   
   relevant_retailer_price = retailer_price_list[relevant_product_number_list]
-  relevant_demand = compute_demand(model, retailer_price_list)%>%
-    .[relevant_product_number_list]
+  relevant_demand = demand %>% .[relevant_product_number_list]
   
   # On construit la matrice d'appartenance
   relevant_cross_product_price_derivative_matrix = 
@@ -373,13 +627,21 @@ determine_costs = function(model, retailer_price_list){
     select(-constant, -retailer.x, -retailer.y)%>%
     pivot_wider(names_from = product_number.y, values_from = same_retailer)%>%
     column_to_rownames("product_number.x")%>%
-    as.matrix()
+    mutate_all(as.numeric)%>%
+    as.matrix()%>%
+    Matrix(sparse = TRUE)
   
   omega = belonging_matrix * relevant_cross_product_price_derivative_matrix   
   
-  # On resout le system C = P + Omega^-1 D
-  absolute_margin = solve(omega, relevant_demand)
+  product_weight = as.numeric(df_product_with_nosale$valqvol)
+  
+  # On resout le systeme
+  # Omega (P-C) + D = 0 
+  # C = P + Omega^-1 D
+  absolute_margin = solve(omega, relevant_demand) %>% as.vector()
   cost_list = relevant_retailer_price + absolute_margin
+  #  product_weight[relevant_product_number_list] + 
+
   
   return(cost_list)
 }
@@ -522,7 +784,7 @@ for (retailer_considered in retailer_list){
   print(paste("Optimization duration for retailer", retailer_considered))
   print(end_time-start_time)
   # Pour retailer = 43_4, 24 minutes, 511 appel a la fonction
-  # Tout ça pour juste vérifier qu'on est à l'équilibre...
+  # Tout ?a pour juste v?rifier qu'on est ? l'?quilibre...
 }
 
 

@@ -1,5 +1,10 @@
 
-setwd("C:/Users/d.mayaux/Documents/GitHub/price-information_organic-eggs")
+if (Sys.info()["sysname"] == "Windows"){
+  setwd("U:/price-information_organic-eggs")
+} else {
+  setwd("~/U/price-information_organic-eggs")
+}
+
 source("Scripts/0_Packages_Libraries.R")
 
 

@@ -138,7 +138,7 @@ retailer_list = retailer_df%>%
 consumption_cleaner4 = consumption_cleaner3%>%
   filter(retailer %in% retailer_list)
 
-# From now on, the number of shopping trips with a sales shall not change
+# From now on, the number of shopping trips with a purchase shall not change
 
 
 #### CHOICE SETS AND CHOICE SITUATIONS
@@ -353,7 +353,7 @@ df_retailer_set = consumption_cleaner6%>%
   count(hhid, retailer, periode)%>%
   select(-n)
 
-saveRDS(df_retailer_set, "Inputs/df_hhid_retailer_set_20211129.rds")
+saveRDS(df_retailer_set, "Inputs/df_hhid_retailer_set_20211222.rds")
   
 # df_retailer_set%>%
 #   count(retailer, periode)
@@ -368,6 +368,8 @@ saveRDS(df_retailer_set, "Inputs/df_hhid_retailer_set_20211129.rds")
 
 df_choice_set = consumption_cleaner6%>%
   select(retailer, periode, marque, marque_simple, label, calibre, valqvol)%>%
+  # PERMET D'EVITER D'AVOIR PLUSIEURS NOSALE
+  filter(marque != "nosale")%>%
   unique()
 
 # Check the size of the choice set for each retailer and period
@@ -407,26 +409,56 @@ df_choice_situation = consumption_cleaner6%>%
                 valqvol_chosen == valqvol),
     price = ifelse(choice, unit_price, NA)
   )%>%
-  select(-unit_price)
+  select(-unit_price)%>%
+  mutate_at(
+    vars(marque, label, calibre, marque_simple, valqvol, retailer),
+    as.character
+  )%>%
+  bind_rows(
+    consumption_cleaner6%>%
+      rename(
+        marque_chosen = marque,
+        label_chosen = label,
+        calibre_chosen = calibre,
+        valqvol_chosen = valqvol,
+        marque_simple_chosen = marque_simple,
+        retailer_chosen = retailer
+      )%>%
+      mutate(
+        marque = "nosale",
+        label = "nosale",
+        calibre = "nosale",
+        valqvol = "0",
+        marque_simple = "nosale",
+        retailer = "nosale",
+        choice = (marque_chosen == "nosale"),
+        price = 0,
+        unit_price = 0
+      )
+  )%>%
+  mutate_at(
+    vars(marque, label, calibre, marque_simple, valqvol, retailer),
+    as.factor
+  )
 
 
 #### SAVING
 
     ## FIRST VERSION, WITH NOSALE
 
-  saveRDS(consumption_cleaner6, "Inputs/shopping_trips_with_nosale_20211129.rds")
-  saveRDS(df_choice_set, "Inputs/choice_sets_with_nosale_20211129.rds")
-  saveRDS(df_retailer_set, "Inputs/retailer_sets_with_nosale_20211129.rds")
-  saveRDS(df_choice_situation, "Inputs/choice_situations_without_price_with_nosale_20211129.rds")
+  saveRDS(consumption_cleaner6, "Inputs/shopping_trips_with_nosale_20211222.rds")
+  saveRDS(df_choice_set, "Inputs/choice_sets_with_nosale_20211222.rds")
+  saveRDS(df_retailer_set, "Inputs/retailer_sets_with_nosale_20211222.rds")
+  saveRDS(df_choice_situation, "Inputs/choice_situations_without_price_with_nosale_20211222.rds")
 
     ## SECOND VERSION, WITHOUT NOSALE
 
-  saveRDS(consumption_cleaner6%>% filter(marque != "nosale"), "Inputs/shopping_trips_without_nosale_20211129.rds")
-  saveRDS(df_choice_set%>% filter(marque != "nosale"), "Inputs/choice_sets_without_price_without_nosale_20211129.rds")
-  saveRDS(df_retailer_set, "Inputs/retailer_sets_with_nosale_20211129.rds")
+  saveRDS(consumption_cleaner6%>% filter(marque != "nosale"), "Inputs/shopping_trips_without_nosale_20211222.rds")
+  saveRDS(df_choice_set%>% filter(marque != "nosale"), "Inputs/choice_sets_without_price_without_nosale_20211222.rds")
+  saveRDS(df_retailer_set, "Inputs/retailer_sets_with_nosale_20211222.rds")
   saveRDS(
     df_choice_situation%>% filter(marque != "nosale", marque_chosen != "nosale"), 
-    "Inputs/choice_situations_without_nosale_20211129.rds"
+    "Inputs/choice_situations_without_nosale_20211222.rds"
     )
   
 end = Sys.time()

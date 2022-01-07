@@ -11,8 +11,8 @@ start = Sys.time()
 
 #### STEP 1 : Keep only households with a large number of non-empty shopping trips 
 
-consumption_with_nosale = readRDS("Inputs/shopping_trips_with_nosale_20211129.rds")
-consumption_without_nosale = readRDS("Inputs/shopping_trips_without_nosale_20211129.rds")
+consumption_with_nosale = readRDS("Inputs/shopping_trips_with_nosale_20211222.rds")
+consumption_without_nosale = readRDS("Inputs/shopping_trips_without_nosale_20211222.rds")
 
 hhid_with_enough_period_with_visit = consumption_without_nosale%>%
   group_by(hhid, periode)%>%
@@ -72,25 +72,25 @@ X_one_per_period = consumption_completed_with_nosale%>%
   select(-rank, -lottery)%>%
   select(X)
 
-saveRDS(X_one_per_period, "Inputs/X_one_per_period_20211129.rds")
+saveRDS(X_one_per_period, "Inputs/X_one_per_period_20211222.rds")
 
 
 
 consumption_completed_without_nosale = consumption_completed_with_nosale%>% filter(marque_simple != "nosale")
 
-saveRDS(consumption_completed_with_nosale, "Inputs/shopping_trips_with_nosale_for_estimation_20211129.rds")
-saveRDS(consumption_completed_without_nosale, "Inputs/shopping_trips_without_nosale_for_estimation_20211129.rds")
+saveRDS(consumption_completed_with_nosale, "Inputs/shopping_trips_with_nosale_for_estimation_20211222.rds")
+saveRDS(consumption_completed_without_nosale, "Inputs/shopping_trips_without_nosale_for_estimation_20211222.rds")
 
 
 #### STEP 3 : INCORPORATE PRICES AND CONTROL FUNCTIONS
 
-product_price = readRDS("Inputs/product_price.rds") 
-control_residuals_distribution = readRDS("Inputs/control_residuals_distribution.rds")
-control_residuals_med_centile_hhid = readRDS("Inputs/control_residuals_med_centile_hhid.rds")
-control_first_stage_coefficients = readRDS("Inputs/control_first_stage_coefficients.rds")
+product_price = readRDS("Inputs/product_price_20211222.rds") 
+control_residuals_distribution = readRDS("Inputs/control_residuals_distribution_20211222.rds")
+control_residuals_med_centile_hhid = readRDS("Inputs/control_residuals_med_centile_hhid_20211222.rds")
+control_first_stage_coefficients = readRDS("Inputs/control_first_stage_coefficients_20211222.rds")
 
 choice_situation_without_price_with_nosale_for_estimation = 
-  readRDS("Inputs/choice_situations_without_price_with_nosale_20211129.rds")%>%
+  readRDS("Inputs/choice_situations_without_price_with_nosale_20211222.rds")%>%
   filter(X %in% (consumption_completed_with_nosale$X %>% unique()))
 
 choice_situation_with_nosale_for_estimation =
@@ -111,8 +111,8 @@ choice_situation_with_nosale_for_estimation =
     #control = ifelse(marque_simple == "nosale", 0, med_centile_nb),
     
     # DIFFERENT CHOICES CAN BE MADE AT THIS STAGE
-    price = ifelse(marque_simple == "nosale", 0, avg_price),
-    #price = ifelse(marque_simple == "nosale", 0, ref_price),
+    #price = ifelse(marque_simple == "nosale", 0, avg_price),
+    price = ifelse(marque_simple == "nosale", 0, ref_price),
     #price = ifelse(marque_simple == "nosale", 0, ref_price * mu_value + centile_value)
     
   )%>%
@@ -122,23 +122,24 @@ choice_situation_without_nosale_for_estimation =
   choice_situation_with_nosale_for_estimation%>% 
   filter(marque_simple_chosen != "nosale", marque_simple != "nosale")
 
-saveRDS(choice_situation_with_nosale_for_estimation, "Inputs/choice_situation_with_nosale_for_estimation_20211129.rds")
-saveRDS(choice_situation_without_nosale_for_estimation, "Inputs/choice_situation_without_nosale_for_estimation_20211129.rds")
+saveRDS(choice_situation_with_nosale_for_estimation, "Inputs/choice_situation_with_nosale_for_estimation_20211222.rds")
+saveRDS(choice_situation_without_nosale_for_estimation, "Inputs/choice_situation_without_nosale_for_estimation_20211222.rds")
 
 
 #### STEP 4 : MAKE UP FOR APOLLO
 
-# consumption_with_nosale = readRDS("Inputs/shopping_trips_with_nosale_20211129.rds")
-# consumption_without_nosale = readRDS("Inputs/shopping_trips_without_nosale_20211129.rds")
-# consumption_completed_with_nosale = readRDS("Inputs/shopping_trips_with_nosale_for_estimation_20211129.rds")
-# consumption_completed_without_nosale = readRDS("Inputs/shopping_trips_without_nosale_for_estimation_20211129.rds")
+# consumption_with_nosale = readRDS("Inputs/shopping_trips_with_nosale_20211222.rds")
+# consumption_without_nosale = readRDS("Inputs/shopping_trips_without_nosale_20211222.rds")
+# consumption_completed_with_nosale = readRDS("Inputs/shopping_trips_with_nosale_for_estimation_20211222.rds")
+# consumption_completed_without_nosale = readRDS("Inputs/shopping_trips_without_nosale_for_estimation_20211222.rds")
 # 
 # choice_situation_with_nosale_for_estimation =
-#   readRDS("Inputs/choice_situation_with_nosale_for_estimation_20211129.rds")
+#   readRDS("Inputs/choice_situation_with_nosale_for_estimation_20211222.rds")
 # choice_situation_without_nosale_for_estimation =
-#   readRDS("Inputs/choice_situation_without_nosale_for_estimation_20211129.rds")
+#   readRDS("Inputs/choice_situation_without_nosale_for_estimation_20211222.rds")
 
 df_product_with_nosale = consumption_with_nosale%>%
+  mutate(retailer = as.factor(ifelse(marque == "nosale", "nosale", as.character(retailer))))%>%
   select(marque, marque_simple, calibre, label, valqvol, retailer)%>%
   unique()%>%
   mutate(constant = 1)%>%
@@ -156,12 +157,14 @@ df_product_without_nosale = consumption_without_nosale%>%
   ungroup()%>%
   select(-constant)
 
-saveRDS(df_product_with_nosale, "Inputs/product_with_nosale_20211129.rds")
-saveRDS(df_product_without_nosale, "Inputs/product_without_nosale_20211129.rds")
+saveRDS(df_product_with_nosale, "Inputs/product_with_nosale_20211222.rds")
+saveRDS(df_product_without_nosale, "Inputs/product_without_nosale_20211222.rds")
 
 
 choice_situation_with_nosale_for_apollo = choice_situation_with_nosale_for_estimation%>%
-  left_join(df_product_with_nosale)%>%
+  left_join(
+    df_product_with_nosale
+    )%>%
   group_by(X)%>%
   mutate(
     choice = max(choice * product_number)
@@ -212,12 +215,12 @@ choice_situation_without_nosale_for_apollo = choice_situation_without_nosale_for
 
 saveRDS(
   choice_situation_with_nosale_for_apollo,
-  "Inputs/choice_situation_with_nosale_for_apollo_20211129.rds"
+  "Inputs/choice_situation_with_nosale_for_apollo_20211222.rds"
 )
 
 saveRDS(
   choice_situation_without_nosale_for_apollo,
-  "Inputs/choice_situation_without_nosale_for_apollo_20211129.rds"
+  "Inputs/choice_situation_without_nosale_for_apollo_20211222.rds"
   )
 
 
@@ -225,9 +228,9 @@ saveRDS(
 #### STEP 5 : CREATE A SMALLER BASE FOR TESTING PURPOSES
 
 # choice_situation_with_nosale_for_apollo =
-#   readRDS("Inputs/choice_situation_with_nosale_for_apollo_20211129.rds")
+#   readRDS("Inputs/choice_situation_with_nosale_for_apollo_20211222.rds")
 # choice_situation_without_nosale_for_apollo =
-#   readRDS("Inputs/choice_situation_without_nosale_for_apollo_20211129.rds")
+#   readRDS("Inputs/choice_situation_without_nosale_for_apollo_20211222.rds")
 
 choice_situation_with_nosale_for_apollo_testing = 
   choice_situation_with_nosale_for_apollo%>%
@@ -249,12 +252,12 @@ choice_situation_without_nosale_for_apollo_testing =
 
 saveRDS(
   choice_situation_with_nosale_for_apollo_testing,
-  "Inputs/choice_situation_with_nosale_for_apollo_testing_20211129.rds"
+  "Inputs/choice_situation_with_nosale_for_apollo_testing_20211222.rds"
 )
 
 saveRDS(
   choice_situation_without_nosale_for_apollo_testing,
-  "Inputs/choice_situation_without_nosale_for_apollo_testing_20211129.rds"
+  "Inputs/choice_situation_without_nosale_for_apollo_testing_20211222.rds"
 )
 
 

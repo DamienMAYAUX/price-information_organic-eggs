@@ -9,13 +9,14 @@ source("Scripts/0_Packages_Libraries.R")
 
 start = Sys.time()
 
+consumption = readRDS("Inputs/shopping_trips_without_nosale_20211222.rds")
+
 #### DEFINING A REFERENCE PRICE AT THE PRODUCT LEVEL
 
 ## FOR THE MOST CONSUMED PRODUCTS, TAKE THE FIRST VALUE THAN SPANS OVER TWO QUANTILES OF THE DATA
 
 nb_quantile = 10
 
-consumption = readRDS("Inputs/shopping_trips_without_nosale_20211129.rds")
 
 df_price1 = consumption%>%
   group_by(label, calibre, marque, retailer, valqvol, periode)%>%
@@ -72,11 +73,10 @@ df_price4 = consumption%>%
   summarise(
     avg_price = mean(unit_price)
   )%>%
-  ungroup()%>%
-  left_join(df_price3)
+  ungroup() %>% left_join(df_price3)
 
 
-saveRDS(df_price4,"Inputs/product_price_20211129.rds")
+saveRDS(df_price4,"Inputs/product_price_20211222.rds")
 
 
 #### BUILDING A CONTROL FUNCTION AT THE INDIVIDUAL-PRODUCT LEVEL
@@ -101,7 +101,7 @@ df_mu = data.frame(mu_value = fit_lm_ref_price$coefficient)%>%
   )%>%
   select(-mu_name)
 
-saveRDS(df_mu, "Inputs/control_first_stage_coefficients.rds")
+saveRDS(df_mu, "Inputs/control_first_stage_coefficients_20211222.rds")
 
 
 ## DETERMINE TO WHAT EXTENT HOUSEHOLDS FACE EXCESSIVE PRICES
@@ -135,8 +135,8 @@ control_residuals_med_centile_hhid = control_residuals_distribution%>%
   group_by(hhid)%>%
   summarise(med_centile_v = as.integer(median(centile_v)))
 
-saveRDS(control_residuals_distribution, "Inputs/control_residuals_distribution_20211129.rds")
-saveRDS(control_residuals_med_centile_hhid, "Inputs/control_residuals_med_centile_hhid_20211129.rds")
+saveRDS(control_residuals_distribution, "Inputs/control_residuals_distribution_20211222.rds")
+saveRDS(control_residuals_med_centile_hhid, "Inputs/control_residuals_med_centile_hhid_20211222.rds")
 
 
 
