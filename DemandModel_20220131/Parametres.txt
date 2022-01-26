@@ -1,0 +1,4 @@
+50 halton draws
+10 cores
+
+apollo_testing : 200 menages

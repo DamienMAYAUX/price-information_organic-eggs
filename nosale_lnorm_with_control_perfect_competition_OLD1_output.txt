@@ -1,0 +1,427 @@
+Model run using Apollo for R, version 0.2.6 on Windows by d.mayaux 
+www.ApolloChoiceModelling.com
+
+Model name                       : nosale_lnorm_with_control_perfect_competition
+Model description                : 
+Model run at                     : 2022-01-25 20:27:09
+Estimation method                : bfgs
+Model diagnosis                  : successful convergence 
+Number of individuals            : 200
+Number of rows in database       : 2568
+Number of modelled outcomes      : 2568
+
+Number of cores used             :  10 
+Number of inter-individual draws : 50 (halton)
+
+LL(start)                        : -12310.24
+LL(0)                            : -12326.8
+LL(C)                            : -8733.208
+LL(final)                        : -9287.021
+Rho-square (0)                   :  0.2466 
+Adj.Rho-square (0)               :  0.2455 
+Rho-square (C)                   :  -0.0634 
+Adj.Rho-square (C)               :  -0.0649 
+AIC                              :  18600.04 
+BIC                              :  18676.1 
+
+Estimated parameters             :  13
+Time taken (hh:mm:ss)            :  04:44:30.8 
+     pre-estimation              :  00:03:19.28 
+     estimation                  :  03:10:15.13 
+     post-estimation             :  01:30:56.4 
+Iterations                       :  47  
+Min abs eigenvalue of Hessian    :  0.009986 
+
+Unconstrained optimisation.
+
+Estimates:
+                   Estimate        s.e.   t.rat.(0)    Rob.s.e. Rob.t.rat.(0)
+b_medium            0.52617     0.17982     2.92609     0.40248      1.307299
+b_low              -0.05811     0.13096    -0.44374     0.30027     -0.193536
+b_indep             0.11198     0.22175     0.50496     0.44695      0.250537
+b_high              1.30475     0.18135     7.19479     0.40498      3.221739
+b_labelbio          1.63645     0.16359    10.00316     0.30742      5.323124
+b_labelpleinair     1.19593     0.10607    11.27536     0.22025      5.429873
+b_nolabel           0.00000          NA          NA          NA            NA
+b_calibreL          0.31756     0.05446     5.83069     0.12270      2.588188
+b_calibreM          0.00000          NA          NA          NA            NA
+mu_lnorm            3.07682     0.06006    51.22661     0.09698     31.726326
+sigma_lnorm        -0.31349     0.02660   -11.78619     0.03846     -8.150831
+c_high             -0.34649     0.07845    -4.41665     0.11116     -3.116907
+c_low_middle        0.00000          NA          NA          NA            NA
+c_high_middle      -0.17670     0.05956    -2.96695     0.06511     -2.713790
+c_low               0.18422     0.07200     2.55868     0.04461      4.129656
+b_nosale            0.00000          NA          NA          NA            NA
+b_control          -0.28317    10.00694    -0.02830   144.72894     -0.001957
+
+WARNING: some alternatives are never chosen in your data!
+
+Overview of choices for MNL model component :
+                                    alt1    alt2    alt3    alt4    alt5    alt6    alt7    alt8
+Times available                  2568.00 2568.00 2568.00 2568.00 2568.00 2568.00 2568.00 2568.00
+Times chosen                      712.00  129.00  148.00  102.00   83.00   66.00   40.00   46.00
+Percentage chosen overall          27.73    5.02    5.76    3.97    3.23    2.57    1.56    1.79
+Percentage chosen when available   27.73    5.02    5.76    3.97    3.23    2.57    1.56    1.79
+                                    alt9   alt10   alt11   alt12   alt13  alt14   alt15   alt16
+Times available                  2568.00 2568.00 2568.00 2568.00 2568.00 2568.0 2568.00 2568.00
+Times chosen                       81.00   71.00   47.00   38.00   46.00   23.0   27.00   25.00
+Percentage chosen overall           3.15    2.76    1.83    1.48    1.79    0.9    1.05    0.97
+Percentage chosen when available    3.15    2.76    1.83    1.48    1.79    0.9    1.05    0.97
+                                   alt17   alt18   alt19   alt20   alt21   alt22   alt23   alt24
+Times available                  2568.00 2568.00 2568.00 2568.00 2568.00 2568.00 2568.00 2568.00
+Times chosen                       19.00   64.00   45.00   37.00   39.00   13.00   26.00   16.00
+Percentage chosen overall           0.74    2.49    1.75    1.44    1.52    0.51    1.01    0.62
+Percentage chosen when available    0.74    2.49    1.75    1.44    1.52    0.51    1.01    0.62
+                                   alt25   alt26   alt27   alt28   alt29   alt30   alt31   alt32
+Times available                  2568.00 2568.00 2568.00 2568.00 2568.00 2568.00 2568.00 2568.00
+Times chosen                       37.00   29.00   37.00   25.00   31.00   40.00    6.00   10.00
+Percentage chosen overall           1.44    1.13    1.44    0.97    1.21    1.56    0.23    0.39
+Percentage chosen when available    1.44    1.13    1.44    0.97    1.21    1.56    0.23    0.39
+                                   alt33   alt34   alt35   alt36  alt37   alt38   alt39   alt40
+Times available                  2568.00 2568.00 2568.00 2568.00 2568.0 2568.00 2568.00 2568.00
+Times chosen                       24.00    5.00   30.00    2.00   18.0   13.00   22.00   11.00
+Percentage chosen overall           0.93    0.19    1.17    0.08    0.7    0.51    0.86    0.43
+Percentage chosen when available    0.93    0.19    1.17    0.08    0.7    0.51    0.86    0.43
+                                   alt41   alt42   alt43   alt44   alt45   alt46   alt47   alt48
+Times available                  2568.00 2568.00 2568.00 2568.00 2568.00 2568.00 2568.00 2568.00
+Times chosen                       15.00    5.00    7.00    6.00    5.00   11.00    4.00   10.00
+Percentage chosen overall           0.58    0.19    0.27    0.23    0.19    0.43    0.16    0.39
+Percentage chosen when available    0.58    0.19    0.27    0.23    0.19    0.43    0.16    0.39
+                                   alt49   alt50   alt51   alt52   alt53 alt54   alt55   alt56
+Times available                  2568.00 2568.00 2568.00 2568.00 2568.00  2568 2568.00 2568.00
+Times chosen                        2.00    2.00    2.00    2.00    3.00     0   10.00    5.00
+Percentage chosen overall           0.08    0.08    0.08    0.08    0.12     0    0.39    0.19
+Percentage chosen when available    0.08    0.08    0.08    0.08    0.12     0    0.39    0.19
+                                   alt57   alt58   alt59   alt60   alt61   alt62   alt63  alt64
+Times available                  2568.00 2568.00 2568.00 2568.00 2568.00 2568.00 2568.00 2568.0
+Times chosen                        5.00    4.00    7.00    7.00    5.00    5.00    1.00   18.0
+Percentage chosen overall           0.19    0.16    0.27    0.27    0.19    0.19    0.04    0.7
+Percentage chosen when available    0.19    0.16    0.27    0.27    0.19    0.19    0.04    0.7
+                                   alt65   alt66   alt67 alt68 alt69   alt70   alt71   alt72
+Times available                  2568.00 2568.00 2568.00  2568  2568 2568.00 2568.00 2568.00
+Times chosen                        2.00    7.00   12.00     0     0    7.00    1.00    3.00
+Percentage chosen overall           0.08    0.27    0.47     0     0    0.27    0.04    0.12
+Percentage chosen when available    0.08    0.27    0.47     0     0    0.27    0.04    0.12
+                                   alt73   alt74   alt75   alt76   alt77   alt78   alt79   alt80
+Times available                  2568.00 2568.00 2568.00 2568.00 2568.00 2568.00 2568.00 2370.00
+Times chosen                        6.00    4.00    3.00    3.00    2.00    4.00    8.00    8.00
+Percentage chosen overall           0.23    0.16    0.12    0.12    0.08    0.16    0.31    0.31
+Percentage chosen when available    0.23    0.16    0.12    0.12    0.08    0.16    0.31    0.34
+                                 alt81   alt82   alt83   alt84   alt85   alt86 alt87 alt88 alt89
+Times available                   2568 2568.00 2568.00 2368.00 2568.00 2568.00  2568  2568  2568
+Times chosen                         0    1.00    4.00    1.00    6.00    2.00     0     0     0
+Percentage chosen overall            0    0.04    0.16    0.04    0.23    0.08     0     0     0
+Percentage chosen when available     0    0.04    0.16    0.04    0.23    0.08     0     0     0
+                                 alt90   alt91   alt92 alt93  alt94   alt95 alt96   alt97 alt98
+Times available                   2173 2568.00 2568.00  2568 400.00 2568.00  2568 2568.00  2568
+Times chosen                         0    3.00    4.00     0   5.00    1.00     0    1.00     0
+Percentage chosen overall            0    0.12    0.16     0   0.19    0.04     0    0.04     0
+Percentage chosen when available     0    0.12    0.16     0   1.25    0.04     0    0.04     0
+                                   alt99  alt100  alt101  alt102  alt103  alt104  alt105  alt106
+Times available                  2568.00 2568.00 2368.00 2568.00 2568.00 2568.00 2568.00 2368.00
+Times chosen                        8.00    3.00   10.00    1.00    2.00    2.00    1.00    3.00
+Percentage chosen overall           0.31    0.12    0.39    0.04    0.08    0.08    0.04    0.12
+Percentage chosen when available    0.31    0.12    0.42    0.04    0.08    0.08    0.04    0.13
+                                 alt107 alt108 alt109  alt110 alt111 alt112  alt113 alt114 alt115
+Times available                    2568   2368   2568 2568.00   1976   1574 1973.00   2180   2568
+Times chosen                          0      0      0    1.00      0      0    1.00      0      0
+Percentage chosen overall             0      0      0    0.04      0      0    0.04      0      0
+Percentage chosen when available      0      0      0    0.04      0      0    0.05      0      0
+                                  alt116 alt117  alt118 alt119  alt120  alt121 alt122 alt123
+Times available                  2171.00   2568 2179.00 790.00 2568.00 2168.00   1774 994.00
+Times chosen                        1.00      0    3.00   1.00    3.00    1.00      0   2.00
+Percentage chosen overall           0.04      0    0.12   0.04    0.12    0.04      0   0.08
+Percentage chosen when available    0.05      0    0.14   0.13    0.12    0.05      0   0.20
+                                  alt124  alt125 alt126  alt127
+Times available                  2183.00 1977.00   2368 1175.00
+Times chosen                        1.00    1.00      0    1.00
+Percentage chosen overall           0.04    0.04      0    0.04
+Percentage chosen when available    0.05    0.05      0    0.09
+
+
+Classical covariance matrix:
+                       b_medium           b_low         b_indep          b_high      b_labelbio b_labelpleinair      b_calibreL
+b_medium               0.032335        0.021341        0.036889        0.030800        0.021105        0.013717        0.002716
+b_low                  0.021341        0.017151        0.025255        0.021202        0.014498        0.009389        0.001907
+b_indep                0.036889        0.025255        0.049175        0.036690        0.026514        0.016805        0.003068
+b_high                 0.030800        0.021202        0.036690        0.032886        0.020301        0.013094        0.002373
+b_labelbio             0.021105        0.014498        0.026514        0.020301        0.026763        0.013991        0.003457
+b_labelpleinair        0.013717        0.009389        0.016805        0.013094        0.013991        0.011250        0.002335
+b_calibreL             0.002716        0.001907        0.003068        0.002373        0.003457        0.002335        0.002966
+mu_lnorm               0.007869        0.005299        0.009544        0.007743        0.006499        0.004245        0.001058
+sigma_lnorm            0.001070      6.0534e-04        0.001568        0.001012        0.001765      9.7103e-04      2.2525e-04
+c_high                 0.001100      6.3530e-04        0.001633        0.001041        0.001830      9.7865e-04      2.2831e-04
+c_high_middle        6.5811e-04      3.8430e-04      9.3534e-04      6.2678e-04      9.9312e-04      5.5690e-04      1.3007e-04
+c_low               -8.8687e-04     -5.2577e-04       -0.001176     -8.5799e-04       -0.001094     -6.6984e-04     -1.6043e-04
+b_control              0.034290        0.022571        0.038163        0.032812        0.019184        0.009932     -7.8790e-04
+                       mu_lnorm     sigma_lnorm          c_high   c_high_middle           c_low       b_control
+b_medium               0.007869        0.001070        0.001100      6.5811e-04     -8.8687e-04        0.034290
+b_low                  0.005299      6.0534e-04      6.3530e-04      3.8430e-04     -5.2577e-04        0.022571
+b_indep                0.009544        0.001568        0.001633      9.3534e-04       -0.001176        0.038163
+b_high                 0.007743        0.001012        0.001041      6.2678e-04     -8.5799e-04        0.032812
+b_labelbio             0.006499        0.001765        0.001830      9.9312e-04       -0.001094        0.019184
+b_labelpleinair        0.004245      9.7103e-04      9.7865e-04      5.5690e-04     -6.6984e-04        0.009932
+b_calibreL             0.001058      2.2525e-04      2.2831e-04      1.3007e-04     -1.6043e-04     -7.8790e-04
+mu_lnorm               0.003608      4.4676e-04       -0.001043       -0.001229       -0.001757        0.007487
+sigma_lnorm          4.4676e-04      7.0747e-04      3.8130e-04      1.5232e-04     -1.3660e-04      8.6058e-04
+c_high                -0.001043      3.8130e-04        0.006155        0.001577        0.001360       8.745e-05
+c_high_middle         -0.001229      1.5232e-04        0.001577        0.003547        0.001413      9.0033e-04
+c_low                 -0.001757     -1.3660e-04        0.001360        0.001413        0.005184       -0.001391
+b_control              0.007487      8.6058e-04       8.745e-05      9.0033e-04       -0.001391      100.138895
+
+Robust covariance matrix:
+                       b_medium           b_low         b_indep          b_high      b_labelbio b_labelpleinair      b_calibreL
+b_medium               0.161992        0.105210        0.165477        0.150650        0.074154        0.054866        0.009318
+b_low                  0.105210        0.090161        0.113222        0.104403        0.047050        0.032937        0.005667
+b_indep                0.165477        0.113222        0.199766        0.164930        0.081854        0.055503        0.010794
+b_high                 0.150650        0.104403        0.164930        0.164011        0.068407        0.050420        0.009031
+b_labelbio             0.074154        0.047050        0.081854        0.068407        0.094509        0.045300        0.010399
+b_labelpleinair        0.054866        0.032937        0.055503        0.050420        0.045300        0.048510        0.011531
+b_calibreL             0.009318        0.005667        0.010794        0.009031        0.010399        0.011531        0.015055
+mu_lnorm               0.035570        0.024087        0.038102        0.034840        0.020708        0.015295        0.004232
+sigma_lnorm            0.003605        0.001201        0.003462        0.003958        0.003758        0.002917      3.7585e-04
+c_high                 0.006550        0.001552        0.005096        0.006422        0.003802        0.005244      8.6589e-04
+c_high_middle          0.003513        0.001996        0.005119        0.005043        0.001931        0.002257     -8.4045e-04
+c_low                 -0.003610       -0.002260       -0.003895       -0.003541       -0.002113       -0.001179     -6.6043e-04
+b_control            -10.184230       -5.802328       -6.923070       -9.658049       -2.224911       -2.142099        2.544812
+                       mu_lnorm     sigma_lnorm          c_high   c_high_middle           c_low       b_control
+b_medium               0.035570        0.003605        0.006550        0.003513       -0.003610        -10.1842
+b_low                  0.024087        0.001201        0.001552        0.001996       -0.002260         -5.8023
+b_indep                0.038102        0.003462        0.005096        0.005119       -0.003895         -6.9231
+b_high                 0.034840        0.003958        0.006422        0.005043       -0.003541         -9.6580
+b_labelbio             0.020708        0.003758        0.003802        0.001931       -0.002113         -2.2249
+b_labelpleinair        0.015295        0.002917        0.005244        0.002257       -0.001179         -2.1421
+b_calibreL             0.004232      3.7585e-04      8.6589e-04     -8.4045e-04     -6.6043e-04          2.5448
+mu_lnorm               0.009405        0.001352        0.001063      1.1058e-04       -0.001703         -1.7529
+sigma_lnorm            0.001352        0.001479        0.002154      8.8730e-04     -3.5049e-04         -0.1214
+c_high                 0.001063        0.002154        0.012358        0.001497      5.0212e-04         -0.3983
+c_high_middle        1.1058e-04      8.8730e-04        0.001497        0.004239      7.4777e-04         -0.1948
+c_low                 -0.001703     -3.5049e-04      5.0212e-04      7.4777e-04        0.001990          0.4507
+b_control             -1.752890       -0.121392       -0.398344       -0.194841        0.450653       2.095e+04
+
+Classical correlation matrix:
+                       b_medium           b_low         b_indep          b_high      b_labelbio b_labelpleinair      b_calibreL
+b_medium                1.00000         0.90625         0.92509         0.94451         0.71742        0.719205        0.277329
+b_low                   0.90625         1.00000         0.86964         0.89276         0.67673        0.675933        0.267385
+b_indep                 0.92509         0.86964         1.00000         0.91236         0.73086        0.714459        0.254039
+b_high                  0.94451         0.89276         0.91236         1.00000         0.68430        0.680728        0.240236
+b_labelbio              0.71742         0.67673         0.73086         0.68430         1.00000        0.806311        0.387970
+b_labelpleinair         0.71921         0.67593         0.71446         0.68073         0.80631        1.000000        0.404250
+b_calibreL              0.27733         0.26739         0.25404         0.24024         0.38797        0.404250        1.000000
+mu_lnorm                0.72857         0.67368         0.71655         0.71087         0.66142        0.666261        0.323540
+sigma_lnorm             0.22362         0.17378         0.26591         0.20984         0.40574        0.344194        0.155488
+c_high                  0.07797         0.06184         0.09385         0.07318         0.14257        0.117611        0.053433
+c_high_middle           0.06145         0.04927         0.07082         0.05803         0.10193        0.088162        0.040100
+c_low                  -0.06850        -0.05576        -0.07363        -0.06571        -0.09287       -0.087713       -0.040911
+b_control               0.01906         0.01722         0.01720         0.01808         0.01172        0.009358       -0.001446
+                       mu_lnorm     sigma_lnorm          c_high   c_high_middle           c_low       b_control
+b_medium                0.72857        0.223620         0.07797        0.061453       -0.068501        0.019056
+b_low                   0.67368        0.173783         0.06184        0.049274       -0.055760        0.017223
+b_indep                 0.71655        0.265906         0.09385        0.070823       -0.073629        0.017198
+b_high                  0.71087        0.209838         0.07318        0.058035       -0.065711        0.018081
+b_labelbio              0.66142        0.405737         0.14257        0.101934       -0.092868        0.011718
+b_labelpleinair         0.66626        0.344194         0.11761        0.088162       -0.087713        0.009358
+b_calibreL              0.32354        0.155488         0.05343        0.040100       -0.040911       -0.001446
+mu_lnorm                1.00000        0.279646        -0.22144       -0.343702       -0.406179        0.012457
+sigma_lnorm             0.27965        1.000000         0.18273        0.096156       -0.071329        0.003233
+c_high                 -0.22144        0.182730         1.00000        0.337440        0.240838      1.1140e-04
+c_high_middle          -0.34370        0.096156         0.33744        1.000000        0.329608        0.001511
+c_low                  -0.40618       -0.071329         0.24084        0.329608        1.000000       -0.001931
+b_control               0.01246        0.003233      1.1140e-04        0.001511       -0.001931        1.000000
+
+Robust correlation matrix:
+                       b_medium           b_low         b_indep          b_high      b_labelbio b_labelpleinair      b_calibreL
+b_medium                 1.0000         0.87056          0.9199          0.9242         0.59931         0.61892         0.18868
+b_low                    0.8706         1.00000          0.8436          0.8586         0.50970         0.49803         0.15381
+b_indep                  0.9199         0.84365          1.0000          0.9112         0.59572         0.56382         0.19683
+b_high                   0.9242         0.85856          0.9112          1.0000         0.54945         0.56526         0.18175
+b_labelbio               0.5993         0.50970          0.5957          0.5494         1.00000         0.66902         0.27568
+b_labelpleinair          0.6189         0.49803          0.5638          0.5653         0.66902         1.00000         0.42669
+b_calibreL               0.1887         0.15381          0.1968          0.1818         0.27568         0.42669         1.00000
+mu_lnorm                 0.9113         0.82716          0.8790          0.8871         0.69457         0.71604         0.35566
+sigma_lnorm              0.2329         0.10397          0.2014          0.2541         0.31785         0.34429         0.07964
+c_high                   0.1464         0.04649          0.1026          0.1427         0.11124         0.21417         0.06348
+c_high_middle            0.1341         0.10207          0.1759          0.1912         0.09647         0.15741        -0.10520
+c_low                   -0.2010        -0.16876         -0.1954         -0.1960        -0.15410        -0.11995        -0.12066
+b_control               -0.1748        -0.13352         -0.1070         -0.1648        -0.05001        -0.06720         0.14331
+                       mu_lnorm     sigma_lnorm          c_high   c_high_middle           c_low       b_control
+b_medium                0.91128         0.23291         0.14640         0.13406        -0.20105        -0.17483
+b_low                   0.82716         0.10397         0.04649         0.10207        -0.16876        -0.13352
+b_indep                 0.87903         0.20140         0.10256         0.17590        -0.19537        -0.10702
+b_high                  0.88707         0.25410         0.14265         0.19123        -0.19599        -0.16478
+b_labelbio              0.69457         0.31785         0.11124         0.09647        -0.15410        -0.05001
+b_labelpleinair         0.71604         0.34429         0.21417         0.15741        -0.11995        -0.06720
+b_calibreL              0.35566         0.07964         0.06348        -0.10520        -0.12066         0.14331
+mu_lnorm                1.00000         0.36244         0.09858         0.01751        -0.39354        -0.12489
+sigma_lnorm             0.36244         1.00000         0.50389         0.35432        -0.20427        -0.02181
+c_high                  0.09858         0.50389         1.00000         0.20680         0.10125        -0.02476
+c_high_middle           0.01751         0.35432         0.20680         1.00000         0.25744        -0.02068
+c_low                  -0.39354        -0.20427         0.10125         0.25744         1.00000         0.06980
+b_control              -0.12489        -0.02181        -0.02476        -0.02068         0.06980         1.00000
+
+ 20 worst outliers in terms of lowest average per choice prediction:
+     ID Avg prob per choice
+  17311         0.002804391
+ 100629         0.003748969
+ 110938         0.004370114
+ 117427         0.004470918
+ 226812         0.005291802
+ 166011         0.005673003
+  33615         0.006057985
+  24478         0.006415356
+  28604         0.006660455
+ 207066         0.007780892
+  18064         0.008027654
+ 124906         0.008298818
+  40008         0.008428523
+ 175105         0.008732404
+ 112263         0.008886279
+ 186632         0.008966303
+ 109229         0.009028002
+ 204605         0.009072342
+  28997         0.009142387
+ 130961         0.009293857
+
+Changes in parameter estimates from starting values:
+                    Initial    Estimate  Difference
+b_medium              0.000     0.52617     0.52617
+b_low                 0.000    -0.05811    -0.05811
+b_indep               0.000     0.11198     0.11198
+b_high                0.000     1.30475     1.30475
+b_labelbio            0.000     1.63645     1.63645
+b_labelpleinair       0.000     1.19593     1.19593
+b_nolabel             0.000     0.00000     0.00000
+b_calibreL            0.000     0.31756     0.31756
+b_calibreM            0.000     0.00000     0.00000
+mu_lnorm             -3.000     3.07682     6.07682
+sigma_lnorm           0.000    -0.31349    -0.31349
+c_high                0.000    -0.34649    -0.34649
+c_low_middle          0.000     0.00000     0.00000
+c_high_middle         0.000    -0.17670    -0.17670
+c_low                 0.000     0.18422     0.18422
+b_nosale              0.000     0.00000     0.00000
+b_control             0.000    -0.28317    -0.28317
+
+Settings and functions used in model definition:
+
+apollo_control
+--------------
+                       Value                                          
+mixing                 "TRUE"                                         
+modelName              "nosale_lnorm_with_control_perfect_competition"
+modelDescr             ""                                             
+indivID                "hhid"                                         
+workInLogs             "FALSE"                                        
+nCores                 "10"                                           
+panelData              "TRUE"                                         
+debug                  "FALSE"                                        
+seed                   "13"                                           
+HB                     "FALSE"                                        
+noValidation           "FALSE"                                        
+noDiagnostics          "FALSE"                                        
+calculateLLC           "TRUE"                                         
+outputDirectory        "U:/price-information_organic-eggs/"           
+analyticGrad           "TRUE"                                         
+analyticGrad_manualSet "FALSE"                                        
+
+Hessian routines attempted
+--------------
+numerical second derivative of LL (using numDeriv)
+
+Scaling in estimation
+--------------
+                     Value
+b_medium        0.52616526
+b_low           0.05811276
+b_indep         0.11197801
+b_high          1.30474692
+b_labelbio      1.63645394
+b_labelpleinair 1.19593512
+b_calibreL      0.31756473
+mu_lnorm        3.07681099
+sigma_lnorm     0.31349227
+c_high          0.34649098
+c_high_middle   0.17669711
+c_low           0.18422417
+b_control       0.28317135
+
+Scaling used in computing Hessian
+--------------
+                     Value
+b_medium        0.52616505
+b_low           0.05811276
+b_indep         0.11197801
+b_high          1.30474705
+b_labelbio      1.63645401
+b_labelpleinair 1.19593487
+b_calibreL      0.31756470
+mu_lnorm        3.07682442
+sigma_lnorm     0.31349257
+c_high          0.34649100
+c_high_middle   0.17669709
+c_low           0.18422418
+b_control       0.28317133
+
+
+apollo_randCoeff
+----------------
+function (apollo_beta , apollo_inputs) {
+  randcoeff = list()
+  randcoeff[["b_price"]] = - exp(
+    mu_lnorm + sigma_lnorm*draws_norm_lognorm +
+      # c_couple_35 * cycle_couple_35 +
+      # c_couple_65 * cycle_couple_65 +
+      # c_couple_3565 * cycle_couple_3565 +
+      # c_family_05 * cycle_family_05 +
+      # c_family_1217 * cycle_family_1217 +
+      # c_family_1824 * cycle_family_1824 +
+      # c_family_611 * cycle_family_611 +
+      # c_single_35 * cycle_single_35 +
+      # c_single_65 * cycle_single_65 +
+      # c_single_3565 * cycle_single_3565
+      c_high * clas_high +
+      c_high_middle * clas_high_middle +
+      c_low_middle * clas_low_middle +
+      c_low * clas_low
+
+    )
+  return (randcoeff)
+}
+
+
+apollo_probabilities
+--------------------
+function(apollo_beta, apollo_inputs, functionality="raw"){
+  
+  apollo_attach( apollo_beta, apollo_inputs)
+  on.exit( apollo_detach( apollo_beta, apollo_inputs) )
+  
+  P = list()
+  
+  good_label = (label[cumsum(is.na(label)) > 0])[2:sum(cumsum(is.na(label)) > 0)]
+  good_marque_simple = (marque_simple[cumsum(is.na(marque_simple)) > 0])[2:sum(cumsum(is.na(marque_simple)) > 0)]
+  good_calibre = (calibre[cumsum(is.na(calibre)) > 0])[2:sum(cumsum(is.na(calibre)) > 0)]
+  residual_label = (good_label[cumsum(is.na(good_label)) > 0])[2:sum(cumsum(is.na(good_label)) > 0)]
+  J = length(good_label)- length(residual_label) - 1
+  
+  V = list()
+  for(j in 1:J) V[[paste0("alt",j)]] =
+    get( paste0("b_", good_label[j])) +
+    get( paste0("b_", good_marque_simple[j])) +
+    get( paste0("b_", good_calibre[j])) +
+    b_price * get(paste0(j, "_price")) +
+    b_control * get(paste0(j, "_control"))
+  
+  mnl_settings = list(
+    alternatives  = setNames(1:J, names(V)),
+    avail         = setNames(apollo_inputs$database[,paste0(1:J, "_price_avl")], names(V)),
+    choiceVar     = choice,
+    V             = V
+  )
+  
+  P[["model"]] = apollo_mnl(mnl_settings , functionality)
+  P = apollo_panelProd(P, apollo_inputs , functionality)
+  P = apollo_avgInterDraws(P, apollo_inputs , functionality)
+  P = apollo_prepareProb(P, apollo_inputs , functionality)
+  return(P)
+}

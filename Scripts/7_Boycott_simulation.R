@@ -213,7 +213,7 @@ generate_database = function(retailer_price_list, activist_price_list = NULL, hh
 #
 # saveRDS(conditionals, paste0("Inputs/Apollo/",model_lnorm_name, "_conditionals.rds"))
 
-conditionals = readRDS(paste0("Inputs/Apollo/",model_lnorm_name, "_conditionals.rds"))%>%
+conditionals = readRDS(paste0("Inputs/Apollo/",model_lnorm_name, "_conditionals_20211214.rds"))%>%
   rename(hhid = ID, conditional = post.mean)
 
 #######################################
@@ -234,9 +234,14 @@ compute_demand = function(model, retailer_price_list,
   # activist_price_list = NULL
   # hhid_activist_list = NULL
   
-  database <<- generate_database(retailer_price_list, activist_price_list, hhid_activist_list, df_hhid_conditional)
-  
-  apollo_beta <<- model$apollo_beta
+  database <<- generate_database(
+    retailer_price_list, 
+    activist_price_list, 
+    hhid_activist_list, 
+    df_hhid_conditional
+    )
+    
+  apollo_beta <<- model$estimate
   apollo_fixed <<- model$apollo_fixed
   apollo_control <<- model$apollo_control
   apollo_control$mixing <- FALSE
@@ -328,6 +333,12 @@ compute_demand = function(model, retailer_price_list,
 # compute_demand(model, retailer_price_list_test)
 # compute_demand(model, retailer_price_list_test, df_hhid_conditional = conditionals)
 
+# blu = apollo_probabilities(model$estimate, apollo_inputs)
+
+
+
+
+
 ## DISPLAYS SOME SUMMARY STATISTICS ON THE DEMAND
 demand_summary = function(demand){
   
@@ -374,72 +385,72 @@ demand_summary(demand_test)
 
 
 
-## SIMULATING CROSS ELASTICITIES
-
-generate_cross_product_price_derivative_matrix = 
-  function(model, retailer_price_list, price_change = 0.01, 
-           activist_price_list = NULL, hhid_activist_list = NULL, 
-           precomputed_demand = NULL){
-  
-  start_time = Sys.time()
-  
-  product_nb = nrow(df_product_with_nosale)
-  cross_product_price_derivative_matrix = matrix(data = 0, nrow = product_nb, ncol = product_nb)
-  
-  demand = compute_demand(model, retailer_price_list)
-  
-  database_original <<- generate_database(retailer_price_list)
-  apollo_beta <<- model$apollo_beta
-  apollo_fixed <<- model$apollo_fixed
-  apollo_control <<- model$apollo_control
-  
-  apollo_probabilities <<- model$apollo_probabilities
-  prediction_settings <<- list(silent = TRUE)
-  
-  # On itere selon le prix que l'on fait changer
-  # Cela revient a remplir ligne a ligne la matrice des elasticites
-  for (i in 1:product_nb) {
-    # i = 12
-    print(paste("Computing column", i))
-    
-    # On ne calcule l'elasticite que par rapport au changement de prix d'un vrai produit
-    if (df_product_with_nosale[i, "marque"] != "nosale") {
-      database <<- database_original %>%
-        mutate_at(vars(paste0(i, "_price")), ~ . + price_change)
-      apollo_inputs <<- apollo_validateInputs()
-      
-      forecast = apollo_prediction(model,
-                                   apollo_probabilities,
-                                   apollo_inputs,
-                                   prediction_settings)
-      
-      demand_modified = forecast %>%
-        select(-ID,-Observation,-chosen) %>%
-        pivot_longer(
-          cols = 1:(length(forecast) - 3),
-          names_to = "product_number",
-          values_to = "probability_sales"
-        ) %>%
-        group_by(product_number) %>%
-        summarize(aggregate_sales = sum(probability_sales)) %>%
-        mutate(product_number = as.integer(gsub("alt", "", product_number))) %>%
-        arrange(product_number) %>%
-        .$aggregate_sales
-      
-      cross_product_price_derivative_matrix[i, ] = (demand_modified - demand) /
-        price_change
-      
-    }
-  } 
-  
-  end_time = Sys.time()
-  
-  print("Cross_product price derivative simulation time :")
-  print(end_time - start_time)
-  
-  return(cross_product_price_derivative_matrix)
-  
-}
+# ## SIMULATING CROSS ELASTICITIES
+# 
+# generate_cross_product_price_derivative_matrix = 
+#   function(model, retailer_price_list, price_change = 0.01, 
+#            activist_price_list = NULL, hhid_activist_list = NULL, 
+#            precomputed_demand = NULL){
+#   
+#   start_time = Sys.time()
+#   
+#   product_nb = nrow(df_product_with_nosale)
+#   cross_product_price_derivative_matrix = matrix(data = 0, nrow = product_nb, ncol = product_nb)
+#   
+#   demand = compute_demand(model, retailer_price_list)
+#   
+#   database_original <<- generate_database(retailer_price_list)
+#   apollo_beta <<- model$apollo_beta
+#   apollo_fixed <<- model$apollo_fixed
+#   apollo_control <<- model$apollo_control
+#   
+#   apollo_probabilities <<- model$apollo_probabilities
+#   prediction_settings <<- list(silent = TRUE)
+#   
+#   # On itere selon le prix que l'on fait changer
+#   # Cela revient a remplir ligne a ligne la matrice des elasticites
+#   for (i in 1:product_nb) {
+#     # i = 12
+#     print(paste("Computing column", i))
+#     
+#     # On ne calcule l'elasticite que par rapport au changement de prix d'un vrai produit
+#     if (df_product_with_nosale[i, "marque"] != "nosale") {
+#       database <<- database_original %>%
+#         mutate_at(vars(paste0(i, "_price")), ~ . + price_change)
+#       apollo_inputs <<- apollo_validateInputs()
+#       
+#       forecast = apollo_prediction(model,
+#                                    apollo_probabilities,
+#                                    apollo_inputs,
+#                                    prediction_settings)
+#       
+#       demand_modified = forecast %>%
+#         select(-ID,-Observation,-chosen) %>%
+#         pivot_longer(
+#           cols = 1:(length(forecast) - 3),
+#           names_to = "product_number",
+#           values_to = "probability_sales"
+#         ) %>%
+#         group_by(product_number) %>%
+#         summarize(aggregate_sales = sum(probability_sales)) %>%
+#         mutate(product_number = as.integer(gsub("alt", "", product_number))) %>%
+#         arrange(product_number) %>%
+#         .$aggregate_sales
+#       
+#       cross_product_price_derivative_matrix[i, ] = (demand_modified - demand) /
+#         price_change
+#       
+#     }
+#   } 
+#   
+#   end_time = Sys.time()
+#   
+#   print("Cross_product price derivative simulation time :")
+#   print(end_time - start_time)
+#   
+#   return(cross_product_price_derivative_matrix)
+#   
+# }
 
 
 # cross_product_price_derivative_matrix_test =
@@ -456,9 +467,8 @@ generate_cross_product_price_derivative_matrix =
 ## COIMPUTE ANALYTICALLY THE DEMAND AND CROSS-PRODUCT DERIVATIVE MATRIX 
 
 generate_cross_product_derivative_and_demand = 
-  function(model, retailer_price_list, 
-           activist_price_list = NULL, hhid_activist_list = NULL,
-           df_hhid_conditional = NULL){
+  function(model, retailer_price_list,  df_hhid_conditional = NULL,
+           hhid_activist_list = NULL, activist_price_list = NULL){
   
   # retailer_price_list = retailer_price_list_test
   # df_hhid_conditional = conditionals
@@ -522,21 +532,26 @@ generate_cross_product_derivative_and_demand =
   
   prediction_settings <<- list(silent = TRUE)
   
-  forecast = apollo_prediction(
-    model,
-    apollo_probabilities,
+  # forecast = apollo_prediction(
+  #   model,
+  #   apollo_probabilities,
+  #   apollo_inputs,
+  #   prediction_settings
+  # )%>% .[[1]]
+  
+  forecast = apollo_probabilities(
+    model$estimate,
     apollo_inputs,
-    prediction_settings
-  )%>% .[[1]]
+  )%>% .[[1]]%>% as.data.frame()
   
   ## Compute the product-level demand from the forecast
   
   product_weight = as.numeric(df_product_with_nosale$valqvol)
   
   demand_per_product = forecast%>%
-    select(-ID,-Observation,-chosen) %>%
+    select(starts_with("alt"))%>%
     pivot_longer(
-      cols = 1:(length(forecast) - 3),
+      starts_with("alt"),
       names_to = "product_number",
       values_to = "probability_sales"
     ) %>%
@@ -581,21 +596,20 @@ generate_cross_product_derivative_and_demand =
   
   }
 
-# tic("Demand estimation")
-# generate_cross_product_derivative_and_demand(model, retailer_price_list_test)$demand
-# toc()
-
+tic("Demand estimation")
+generate_cross_product_derivative_and_demand(model, retailer_price_list_test, conditionals)$demand
+toc()
 
 ## FINDING THE COSTS
 
-determine_costs = function(model, retailer_price_list){
+determine_costs = function(model, retailer_price_list, df_hhid_conditional = NULL){
   
   # On oublie les lignes et colonnes concernant le non-achat
   # cross_product_price_derivative_matrix = generate_cross_product_price_derivative_matrix(model, df_retailer_price)
   # cross_product_price_derivative_matrix = cross_product_price_derivative_matrix_test
   # demand = compute_demand(model, retailer_price_list)
   
-  demand_and_matrix = generate_cross_product_derivative_and_demand(model, retailer_price_list)
+  demand_and_matrix = generate_cross_product_derivative_and_demand(model, retailer_price_list, df_hhid_conditional)
   demand = demand_and_matrix$demand
   cross_product_price_derivative_matrix = demand_and_matrix$matrix
   

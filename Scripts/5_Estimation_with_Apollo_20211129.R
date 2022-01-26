@@ -10,7 +10,7 @@ source("Scripts/0_Packages_Libraries.R")
 
 ## Parameter for all models
 nb_halton_draw = 200
-nb_core = 3
+nb_core = 20
 
 apollo_initialise()
 
@@ -77,7 +77,7 @@ estimate_settings = list(
 
 ## WITH NO SALE
 
-database_before_merge = as.data.frame(readRDS("Inputs/choice_situation_with_nosale_for_apollo_testing_20211129.rds"))
+database_before_merge = as.data.frame(readRDS("Inputs/choice_situation_with_nosale_for_apollo_20211129.rds"))
 
 df_product = as.data.frame(readRDS("Inputs/product_with_nosale_20211129.rds"))%>%
   select(marque_simple, calibre, label)%>%
@@ -231,73 +231,73 @@ database = database_before_merge%>%
 
 #### MODEL 0c : WITH NOSALE, WITH CONTROL 
 
-# apollo_control = list(
-#   mixing = FALSE,
-#   modelName = "nosale_with_control",
-#   modelDescr = "A usual MNL without random coefficient. Not buying is always possible. A control function is included",
-#   indivID = "hhid",
-#   workInLogs = FALSE,
-#   nCores = nb_core
-# )
-# 
-# apollo_beta = c(
-#   base_beta,
-#   "b_nosale" = 0,
-#   "b_price" = -5,
-#   "b_control" = 0
-# )
-# 
-# apollo_fixed = c("b_nosale", "b_nolabel", "b_calibreM")
-# 
-# apollo_inputs=apollo_validateInputs()
-# 
-# 
-# apollo_probabilities = function(apollo_beta, apollo_inputs, functionality="estimate"){
-# 
-#   apollo_attach( apollo_beta, apollo_inputs)
-#   on.exit( apollo_detach( apollo_beta, apollo_inputs) )
-# 
-#   P = list()
-# 
-#   good_label = (label[cumsum(is.na(label)) > 0])[2:sum(cumsum(is.na(label)) > 0)]
-#   good_marque_simple = (marque_simple[cumsum(is.na(marque_simple)) > 0])[2:sum(cumsum(is.na(marque_simple)) > 0)]
-#   good_calibre = (calibre[cumsum(is.na(calibre)) > 0])[2:sum(cumsum(is.na(calibre)) > 0)]
-#   residual_label = (good_label[cumsum(is.na(good_label)) > 0])[2:sum(cumsum(is.na(good_label)) > 0)]
-#   J = length(good_label)- length(residual_label) - 1
-# 
-#   V = list()
-#   for(j in 1:J) V[[paste0("alt",j)]] =
-#     get( paste0("b_", good_label[j])) +
-#     get( paste0("b_", good_marque_simple[j])) +
-#     get( paste0("b_", good_calibre[j])) +
-#     b_price * get(paste0(j, "_price")) +
-#     b_control * get(paste0(j, "_control")) +
-#     b_valqvol * get(paste0(j, "_valqvol"))
-# 
-#   mnl_settings = list(
-#     alternatives  = setNames(1:J, names(V)),
-#     avail         = setNames(apollo_inputs$database[,paste0(1:J, "_price_avl")], names(V)),
-#     choiceVar     = choice,
-#     V             = V
-#   )
-# 
-#   P[["model"]] = apollo_mnl(mnl_settings , functionality)
-#   P = apollo_panelProd(P, apollo_inputs , functionality)
-# 
-#   P = apollo_prepareProb(P, apollo_inputs , functionality)
-#   return(P)
-# }
-# 
-# model = apollo_estimate(
-#   apollo_beta,
-#   apollo_fixed,
-#   apollo_probabilities,
-#   apollo_inputs,
-#   estimate_settings
-# )
-# setwd("C:/Users/d.mayaux/Documents/GitHub/price-information_organic-eggs/Inputs/Apollo")
-# apollo_saveOutput(model)
-# setwd("C:/Users/d.mayaux/Documents/GitHub/price-information_organic-eggs")
+apollo_control = list(
+  mixing = FALSE,
+  modelName = "nosale_with_control",
+  modelDescr = "A usual MNL without random coefficient. Not buying is always possible. A control function is included",
+  indivID = "hhid",
+  workInLogs = FALSE,
+  nCores = nb_core
+)
+
+apollo_beta = c(
+  base_beta,
+  "b_nosale" = 0,
+  "b_price" = -5,
+  "b_control" = 0
+)
+
+apollo_fixed = c("b_nosale", "b_nolabel", "b_calibreM")
+
+apollo_inputs=apollo_validateInputs()
+
+
+apollo_probabilities = function(apollo_beta, apollo_inputs, functionality="estimate"){
+
+  apollo_attach( apollo_beta, apollo_inputs)
+  on.exit( apollo_detach( apollo_beta, apollo_inputs) )
+
+  P = list()
+
+  good_label = (label[cumsum(is.na(label)) > 0])[2:sum(cumsum(is.na(label)) > 0)]
+  good_marque_simple = (marque_simple[cumsum(is.na(marque_simple)) > 0])[2:sum(cumsum(is.na(marque_simple)) > 0)]
+  good_calibre = (calibre[cumsum(is.na(calibre)) > 0])[2:sum(cumsum(is.na(calibre)) > 0)]
+  residual_label = (good_label[cumsum(is.na(good_label)) > 0])[2:sum(cumsum(is.na(good_label)) > 0)]
+  J = length(good_label)- length(residual_label) - 1
+
+  V = list()
+  for(j in 1:J) V[[paste0("alt",j)]] =
+    get( paste0("b_", good_label[j])) +
+    get( paste0("b_", good_marque_simple[j])) +
+    get( paste0("b_", good_calibre[j])) +
+    b_price * get(paste0(j, "_price")) +
+    b_control * get(paste0(j, "_control")) +
+    b_valqvol * get(paste0(j, "_valqvol"))
+
+  mnl_settings = list(
+    alternatives  = setNames(1:J, names(V)),
+    avail         = setNames(apollo_inputs$database[,paste0(1:J, "_price_avl")], names(V)),
+    choiceVar     = choice,
+    V             = V
+  )
+
+  P[["model"]] = apollo_mnl(mnl_settings , functionality)
+  P = apollo_panelProd(P, apollo_inputs , functionality)
+
+  P = apollo_prepareProb(P, apollo_inputs , functionality)
+  return(P)
+}
+
+model = apollo_estimate(
+  apollo_beta,
+  apollo_fixed,
+  apollo_probabilities,
+  apollo_inputs,
+  estimate_settings
+)
+setwd("C:/Users/d.mayaux/Documents/GitHub/price-information_organic-eggs/Inputs/Apollo")
+apollo_saveOutput(model)
+setwd("C:/Users/d.mayaux/Documents/GitHub/price-information_organic-eggs")
 
 
 

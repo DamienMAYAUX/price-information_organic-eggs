@@ -69,7 +69,7 @@ df_price3 = consumption%>%
 ## ADD SIMPLE PRICE AVERAGE AS AN ALTERNATIVE TO THE PREVIOUS PRICES
 
 df_price4 = consumption%>%
-  group_by(label, calibre, marque, retailer, valqvol, periode)%>%
+  group_by(label, calibre, marque, marque_simple, retailer, valqvol, periode)%>%
   summarise(
     avg_price = mean(unit_price)
   )%>%

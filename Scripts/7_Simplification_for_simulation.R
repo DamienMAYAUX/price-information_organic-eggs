@@ -39,9 +39,21 @@ df_retailer_set = readRDS("Inputs/df_hhid_retailer_set_20211222.rds")
 
 df_choice_set = readRDS("Inputs/choice_sets_with_nosale_20211222.rds")
 df_choice_set_simplified = df_choice_set%>%
-  select(-valqvol)%>% unique()
+  select(-valqvol)%>% 
+  mutate(
+    marque_simplified = ifelse(
+      marque_simple %in% c("high", "medium", "low"), 
+      paste(marque_simple, retailer, sep = '_'),
+      as.character(marque)
+      )
+  )%>% 
+  unique()
+
+df_product_simplified = df_choice_set_simplified%>%
+  select(-periode, -retailer) %>% unique()
 
 df_choice_situation = consumption_cleaner6%>%
+  
   rename(
     marque_chosen = marque,
     label_chosen = label,
@@ -96,8 +108,8 @@ df_choice_situation = consumption_cleaner6%>%
     as.factor
   )
 
-saveRDS(consumption_cleaner6_simplified, "Inputs/shopping_trips_with_nosale_20211222_simplified.rds")
-saveRDS(df_choice_situation_simplified, "Inputs/choice_situations_without_price_with_nosale_20211222_simplified.rds")
+saveRDS(consumption_cleaner6, "Inputs/shopping_trips_with_nosale_20211222_simplified.rds")
+saveRDS(df_choice_situation, "Inputs/choice_situations_without_price_with_nosale_20211222_simplified.rds")
 
 
 
@@ -188,7 +200,7 @@ control_residuals_med_centile_hhid = readRDS("Inputs/control_residuals_med_centi
 control_first_stage_coefficients = readRDS("Inputs/control_first_stage_coefficients_20211222.rds")
 
 choice_situation_without_price_with_nosale_for_estimation = 
-  readRDS("Inputs/choice_situations_without_price_with_nosale_20211222.rds")%>%
+  readRDS("Inputs/choice_situations_without_price_with_nosale_20211222_simplified.rds")%>%
   filter(X %in% (consumption_completed_with_nosale$X %>% unique()))
 
 choice_situation_with_nosale_for_estimation =
@@ -216,11 +228,11 @@ choice_situation_without_nosale_for_estimation =
   choice_situation_with_nosale_for_estimation%>% 
   filter(marque_simple_chosen != "nosale", marque_simple != "nosale")
 
-saveRDS(choice_situation_with_nosale_for_estimation, "Inputs/choice_situation_with_nosale_for_estimation_20211222.rds")
+saveRDS(choice_situation_with_nosale_for_estimation, "Inputs/choice_situation_with_nosale_for_estimation_20211222_simplified.rds")
 
 df_product_with_nosale = consumption_with_nosale%>%
   mutate(retailer = as.factor(ifelse(marque == "nosale", "nosale", as.character(retailer))))%>%
-  select(marque, marque_simple, calibre, label, valqvol, retailer)%>%
+  select(marque, marque_simple, calibre, label,  retailer)%>%
   unique()%>%
   mutate(constant = 1)%>%
   group_by(constant)%>%
@@ -228,7 +240,7 @@ df_product_with_nosale = consumption_with_nosale%>%
   ungroup()%>%
   select(-constant)
 
-saveRDS(df_product_with_nosale, "Inputs/product_with_nosale_20211222.rds")
+saveRDS(df_product_with_nosale, "Inputs/product_with_nosale_20211222_simplified.rds")
 
 
 choice_situation_with_nosale_for_apollo = choice_situation_with_nosale_for_estimation%>%
