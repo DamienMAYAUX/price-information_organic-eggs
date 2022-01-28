@@ -585,7 +585,7 @@ setwd("./Inputs/Apollo")
 apollo_saveOutput(model)
 setwd(dir)
 
-model = apollo_loadModel("nosale_lnorm_with_control")
+model = apollo_loadModel("DemandModel_20220131/nosale_lnorm_with_control_perfect_competition")
 model$estimate
 model$varcov%>% View()
 df_model_coefficients = 
@@ -850,7 +850,8 @@ df_model_coefficient_demographics_kable%>%
 ##############################################################
 ##############################################################
 
-competition_hypothesis = "perfect_competition"
+#competition_hypothesis = "perfect_competition"
+competition_hypothesis = "period"
 
 database = readRDS(paste0("Inputs/database_apollo_12_", competition_hypothesis, ".rds"))
 
@@ -1013,7 +1014,7 @@ generate_database = function(
 #   )
 # database%>% filter(hhid %in% hhid_activist_list_test) %>% View()
 
-model = apollo_loadModel(paste0("Inputs/Apollo/nosale_lnorm_with_control_", competition_hypothesis, "_20220131"))
+model = apollo_loadModel(paste0("Inputs/Apollo/nosale_lnorm_with_control_perfect_competition_20220131"))
 model$apollo_control$panelData = FALSE
 model$apollo_control$mixing = FALSE
 model$apollo_randCoeff = NULL
@@ -1402,14 +1403,14 @@ cost_list = (1-0.055)*retailer_price_list_test - absolute_margin
 ####################### Parameters #########################
 ############################################################
 
-boycott_price_min = 0.25
-boycott_price_max = 0.35
-boycott_step = 0.02
+boycott_price_min = 0.1
+boycott_price_max = 0.7
+boycott_step = 0.05
 boycott_price_range = boycott_price_min + boycott_step * 0:(1+(boycott_price_max-boycott_price_min)/boycott_step)
 
-hhid_activist_list = hhid_activist_list_test
-boycott_type = "hard"
-nb_cluster = 20
+# hhid_activist_list = hhid_activist_list_test
+# boycott_type = "hard"
+nb_cluster = 15
 
 ############################################################
 
@@ -1420,6 +1421,7 @@ package_loader = function(){
   library(apollo)
   library(tidyverse)
   library(tictoc)
+  library(rje)
 }
 
 compute_equilibrium_price = function(
@@ -1507,9 +1509,13 @@ compute_equilibrium_price = function(
 # holding the price of some organic products at their boycott level
 
 compute_best_response_retailer = function(
-  model, initial_retailer_price, conditionals,
-  activist_price_list, hhid_activist_list,
+  model, 
+  initial_retailer_price, 
+  conditionals,
+  activist_price_list,
+  hhid_activist_list,
   boycott_type, subsample,
+  current_retailer,
   retailer_product_rank,
   retailer_organic_product_at_boycott_price_rank,
   retailer_product_not_at_boycott_price_rank,
@@ -1534,8 +1540,12 @@ compute_best_response_retailer = function(
   #   .$rank%>%
   #   .[!(. %in% retailer_organic_product_at_boycott_price_rank)]
   # activist_price_list = activist_price_list_test
+  # hhid_activist_list = hhid_activist_list_alpha_1percent
   # initial_retailer_price = retailer_price_list_test
+  # boycott_type = "hard"
+  # subsample = NULL
   # precision = 0.0001
+  # verbose = 5
   
   new_retailer_price = initial_retailer_price
   new_retailer_price[retailer_organic_product_at_boycott_price_rank] = 
@@ -1547,7 +1557,7 @@ compute_best_response_retailer = function(
   iteration_counter = 0
   
   tic("Computing the best price took")
-  while (price_difference>precision){
+  while (price_difference>precision & weight > 0.0001){
     
     iteration_counter = iteration_counter+1
     current_retailer_price = new_retailer_price
@@ -1563,18 +1573,15 @@ compute_best_response_retailer = function(
       .[relevant_product_number_list]%>%
       .[retailer_product_not_at_boycott_price_rank]
     
-    relevant_cross_product_price_derivative_matrix =
+    omega =
       demand_and_matrix$matrix%>%
       .[relevant_product_number_list, relevant_product_number_list]%>%
       as.matrix()
-    
-    omega_not_at_boycott_price = relevant_cross_product_price_derivative_matrix%>%
-      .[retailer_product_not_at_boycott_price_rank, retailer_product_not_at_boycott_price_rank]
 
     new_retailer_price[retailer_product_not_at_boycott_price_rank] =
       (cost_list[retailer_product_not_at_boycott_price_rank] - 
          solve(
-           omega_not_at_boycott_price,
+           omega[retailer_product_not_at_boycott_price_rank, retailer_product_not_at_boycott_price_rank],
            relevant_demand + 
              omega[retailer_product_not_at_boycott_price_rank,retailer_organic_product_at_boycott_price_rank] %*% 
              as.matrix(current_retailer_price[retailer_organic_product_at_boycott_price_rank] - cost_list[retailer_organic_product_at_boycott_price_rank])
@@ -1592,9 +1599,9 @@ compute_best_response_retailer = function(
     # weight = min(previous_price_difference/price_difference, 1)
     
     if (price_difference/previous_price_difference > 1){
-      weight = previous_price_difference/price_difference
+      weight = min(previous_price_difference/price_difference, weight)
     } else if (price_difference/previous_price_difference > 0.8){
-      weight = weight * 0.8
+      weight = weight * 0.9
     }
     
     min_weight = min(weight, min_weight)
@@ -1610,12 +1617,13 @@ compute_best_response_retailer = function(
       print(new_retailer_price[retailer_product_not_at_boycott_price_rank])
     }
   } 
-   
+    
   }
   toc()
   
-  if (min_weight < 0.1){
-    warning(paste("For retailer", current_retailer, "the step size went as low as", min_weight))
+  if (min_weight < 0.05){
+    print(paste("Convergence issue for retailer", current_retailer))
+    warning(paste("The step size went as low as", min_weight, "for the price system"))
   }
   
   if (verbose > 2){
@@ -1643,7 +1651,7 @@ compute_equilibrium_price_boycott = function(
   df_hhid_conditional,
   activist_price_list,
   hhid_activist_list,
-  boycott_type = NULL,
+  boycott_type,
   subsample = NULL,
   verbose = 2,
   precision = 0.00005,
@@ -1674,6 +1682,15 @@ compute_equilibrium_price_boycott = function(
   price_difference = 0.10
   iteration_counter = 0
   current_precision = initial_precision
+  
+  # res <- NULL
+  # tryCatch({
+  #   res <- withTimeout({
+  #     foo()
+  #   }, timeout = 3600)
+  # }, TimeoutException = function(ex) {
+  #   message("")
+  # })
   
   while (price_difference>precision){
     
@@ -1713,9 +1730,13 @@ compute_equilibrium_price_boycott = function(
         
         retailer_best_response = 
           compute_best_response_retailer(
-            model, current_retailer_price, conditionals,
-            activist_price_list, hhid_activist_list,
+            model, 
+            current_retailer_price, 
+            conditionals,
+            activist_price_list, 
+            hhid_activist_list,
             boycott_type, subsample,
+            current_retailer,
             retailer_product_rank,
             combination,
             retailer_product_rank%>% .[!(. %in% combination)],
@@ -1787,18 +1808,17 @@ compute_equilibrium_price_boycott = function(
 #     boycott_type = "hard",
 #     subsample = NULL,
 #     verbose = 1,
-#     precision = 0.00005,
-#     initial_precision = 0.00001
+#     precision = 0.005,
+#     initial_precision = 0.005
 #     )
 # toc()
-
+#round(100 * (converged_retailer_price-retailer_price_list_test)/retailer_price_list_test)
 
 compute_equilibrium_price_boycott_range = function(
   initial_retailer_price = retailer_price_list_test,
   df_hhid_conditional = conditionals,
-  activist_price_list = activist_price_list_test,
-  hhid_activist_list = hhid_activist_list_test,
-  boycott_type = "hard",
+  hhid_activist_list,
+  boycott_type,
   subsample = NULL,
   verbose = 1,
   precision = 0.00005,
@@ -1822,7 +1842,6 @@ compute_equilibrium_price_boycott_range = function(
     "database",
     "conditionals",
     "package_loader",
-    "hhid_activist_list",
     "apollo_control",
     "apollo_fixed",
     "apollo_beta"
@@ -1841,13 +1860,13 @@ compute_equilibrium_price_boycott_range = function(
     ),
     fun = compute_equilibrium_price_boycott,
     initial_retailer_price = retailer_price_list_test,
-    df_hhid_conditional = conditionals,
-    hhid_activist_list = hhid_activist_list_test,
-    boycott_type = "hard",
-    subsample = NULL,
-    verbose = 1,
-    precision = 0.00005,
-    initial_precision = 0.0001
+    df_hhid_conditional = df_hhid_conditional,
+    hhid_activist_list = hhid_activist_list,
+    boycott_type = boycott_type,
+    subsample = subsample,
+    verbose = verbose,
+    precision = precision,
+    initial_precision = initial_precision
   )
   toc()
   
@@ -1857,19 +1876,223 @@ compute_equilibrium_price_boycott_range = function(
   
 }
 
-tic("Compute the equilibrium price under boycott")
-compute_equilibrium_price_boycott_range(
+# tic("Compute the equilibrium price under boycott")
+# retailer_price_list_range = compute_equilibrium_price_boycott_range(
+#   initial_retailer_price = retailer_price_list_test,
+#   df_hhid_conditional = conditionals,
+#   hhid_activist_list = hhid_activist_list_test,
+#   boycott_type = "hard",
+#   subsample = NULL,
+#   verbose = 1,
+#   precision = 0.005,
+#   initial_precision = 0.005
+# )
+# toc()
+# saveRDS(retailer_price_list_range, "Inputs/price_range_hard_25_35_2.rds")
+
+
+#### POUR LA NUIT #####
+
+# - un cas sans boycott pour vérifier que tout va bien (1)
+# - middle high 5% et high 5% en soft (2)
+# - alpha et top consommateurs bios en hard et 0.5%, 1% et 5% (6)
+
+nb_hhid = nrow(conditionals)
+
+hhid_activist_list_high_middle_5percent = database%>%
+  select(hhid, clas_high_middle)%>% 
+  filter(clas_high_middle == 1)%>% 
+  unique()%>%
+  .$hhid%>%
+  sample(round(5*nb_hhid/100))
+
+hhid_activist_list_high_5percent = database%>%
+  select(hhid, clas_high)%>% 
+  filter(clas_high == 1)%>% 
+  unique()%>%
+  .$hhid%>%
+  sample(round(5*nb_hhid/100))
+  
+hhid_activist_list_alpha_5percent = conditionals%>%
+  mutate(percentile = quantile(conditional, probs = c(0.05)))%>%
+  filter(conditional < percentile)%>% .$hhid
+
+hhid_activist_list_alpha_1percent = conditionals%>%
+  mutate(percentile = quantile(conditional, probs = c(0.01)))%>%
+  filter(conditional < percentile)%>% .$hhid
+
+hhid_activist_list_alpha_05percent = conditionals%>%
+  mutate(percentile = quantile(conditional, probs = c(0.005)))%>%
+  filter(conditional < percentile)%>% .$hhid
+
+
+# # CONTROL 
+# tic("Control")
+# retailer_price_list_range_test_control1 = compute_equilibrium_price_boycott(
+#   initial_retailer_price = retailer_price_list_test,
+#   activist_price_list = rep(1, 122),
+#   df_hhid_conditional = conditionals,
+#   hhid_activist_list = hhid_activist_list_alpha_5percent,
+#   boycott_type = "soft",
+#   subsample = NULL,
+#   verbose = 1,
+#   precision = 0.001,
+#   initial_precision = 0.005
+# )
+# saveRDS(
+#   retailer_price_list_range_test_control1, 
+#   "Inputs/retailer_price_list_range_test_control1.rds"
+# )
+# toc()
+
+# 
+# # SOFT, HIGH
+# retailer_price_list_range_soft_high_5percent_0_70_02 = 
+#   compute_equilibrium_price_boycott(
+#     initial_retailer_price = retailer_price_list_test,
+#     df_hhid_conditional = conditionals,
+#     activist_price_list = rep(0.25, 122),
+#     hhid_activist_list = hhid_activist_list_high_5percent,
+#     boycott_type = "soft",
+#     subsample = NULL,
+#     verbose = 1,
+#     precision = 0.001,
+#     initial_precision = 0.005
+#   )
+# saveRDS(
+#   retailer_price_list_range_soft_high_5percent_0_70_02_25c, 
+#   "Inputs/retailer_price_list_range_soft_high_5percent_0_70_02.rds"
+# )      
+
+
+# # SOFT, HIGH MIDDLE
+# retailer_price_list_range_soft_high_middle_5percent_0_70_02_25c = 
+#   compute_equilibrium_price_boycott(
+#     initial_retailer_price = retailer_price_list_test,
+#     df_hhid_conditional = conditionals,
+#     activist_price_list = rep(0.25, 122),
+#     hhid_activist_list = hhid_activist_list_high_middle_5percent,
+#     boycott_type = "soft",
+#     subsample = NULL,
+#     verbose = 1,
+#     precision = 0.001,
+#     initial_precision = 0.005
+#   )
+# saveRDS(
+#   retailer_price_list_range_soft_high_middle_5percent_0_70_02_25c, 
+#   "Inputs/retailer_price_list_range_soft_high_middle_5percent_0_70_02_25c.rds"
+# )            
+
+
+# # HARD, ALPHA, 5%
+# retailer_price_list_range_hard_alpha_5percent_0_70_02_25c = compute_equilibrium_price_boycott(
+#   initial_retailer_price = retailer_price_list_test,
+#   df_hhid_conditional = conditionals,
+#   activist_price_list = rep(0.25, 122),
+#   hhid_activist_list = hhid_activist_list_alpha_5percent,
+#   boycott_type = "hard",
+#   subsample = NULL,
+#   verbose = 1,
+#   precision = 0.001,
+#   initial_precision = 0.005
+# )
+# saveRDS(
+#   retailer_price_list_range_hard_alpha_5percent_0_70_02_25c,
+#   "Inputs/retailer_price_list_range_hard_alpha_5percent_0_70_02_25c.rds"
+# )
+# 
+# 
+
+
+# HARD, ALPHA 1%
+retailer_price_list_range_hard_alpha_1percent_0_70_02 = compute_equilibrium_price_boycott(
   initial_retailer_price = retailer_price_list_test,
   df_hhid_conditional = conditionals,
-  activist_price_list = activist_price_list_test,
-  hhid_activist_list = hhid_activist_list_test,
+  activist_price_list = rep(0.05, 122),
+  hhid_activist_list = hhid_activist_list_alpha_1percent,
   boycott_type = "hard",
   subsample = NULL,
   verbose = 1,
-  precision = 0.0001,
-  initial_precision = 0.0001
+  precision = 0.001,
+  initial_precision = 0.005
 )
-toc()
+saveRDS(
+  retailer_price_list_range_hard_alpha_1percent_0_70_02,
+  "Inputs/retailer_price_list_range_hard_alpha_1percent_0_70_02.rds"
+)
+# 
+# 
+# # HARD, ALPHA 0.5%
+# retailer_price_list_range_hard_alpha_05percent_0_70_02 = 
+#   compute_equilibrium_price_boycott_range(
+#     initial_retailer_price = retailer_price_list_test,
+#     df_hhid_conditional = conditionals,
+#     hhid_activist_list = hhid_activist_list_alpha_05percent,
+#     boycott_type = "hard",
+#     subsample = NULL,
+#     verbose = 1,
+#     precision = 0.001,
+#     initial_precision = 0.005
+#   )
+# saveRDS(
+#   retailer_price_list_range_hard_alpha_05percent_0_70_02, 
+#   "Inputs/retailer_price_list_range_hard_alpha_05percent_0_70_02.rds"
+# )                      
+
+
+
+
+
+
+retailer_price_list_with_hard_boycott = readRDS("Inputs/retailer_price_list_range_hard_alpha_5percent_0_70_02_25c.rds")
+
+generate_cross_product_derivative_and_demand(
+  model, retailer_price_list_with_hard_boycott, conditionals,
+  rep(0.25, 122), hhid_activist_list_alpha_5percent,
+  "hard"
+)%>%
+  .$demand%>%
+  .[relevant_product_number_list]
+
+
+
+demand_test2 = generate_cross_product_derivative_and_demand(
+  model, retailer_price_list_with_hard_boycott, conditionals,
+  c(0.25, 122), hhid_activist_list_alpha_5percent,
+  boycott_type = "hard"
+)%>%
+  .$demand
+
+round(100*(retailer_price_list_with_hard_boycott-retailer_price_list_test)/retailer_price_list_test)
+boycotted_products = data.frame(
+  price_after = retailer_price_list_with_hard_boycott,
+  price_before = retailer_price_list_test,
+  demand_after = generate_cross_product_derivative_and_demand(
+    model, retailer_price_list_with_hard_boycott, conditionals,
+    rep(0.25, 122), hhid_activist_list_alpha_5percent,
+    "hard"
+  )%>%
+    .$demand%>%
+    .[relevant_product_number_list],
+  demand_before = generate_cross_product_derivative_and_demand(
+    model, retailer_price_list_test, conditionals)%>%
+    .$demand%>%
+    .[relevant_product_number_list],
+  product_number = df_product$product_number
+)%>%
+  left_join(df_product)%>%
+  mutate(
+    percent_change = round(100*(price_after-price_before)/price_before),
+    percent_change = round(100*(demand_after-demand_before)/demand_before)
+    )
+
+boycotted_products%>%group_by(label)%>%
+  # summarise_at(vars(price_before, price_after), mean)%>%
+  summarise_at(vars(demand_before, demand_after), sum)%>%
+  mutate(
+    #percent_change = round(100*(price_after-price_before)/price_before)
+    percent_change = round(100*(demand_after-demand_before)/demand_before)
+  )
 
 
 
@@ -2015,16 +2238,16 @@ toc()
 #   step = 1
 # )
 
+# retailer_price_list_range%>%
+#   lapply(
+#     FUN = function(x){
+#       round(100*(x - retailer_price_list_test)/retailer_price_list_test)
+#     }
+#   )
 
-
-
-
-
-
-
-
-
-
+retailer_price_list_range = retailer_price_list_range_hard_alpha_1percent_0_70_02
+hhid_activist_list = hhid_activist_list_alpha_1percent
+boycott_type = "hard"
 
 demand_range = 1:length(retailer_price_list_range)%>%
   lapply(
@@ -2065,6 +2288,20 @@ initial_demand = generate_cross_product_derivative_and_demand(
   model, retailer_price_list_test, conditionals, 
 )%>% .$demand%>% .[relevant_product_number_list]
 
+# data.frame(demand = initial_demand, product_number = df_product$product_number)%>%
+#   left_join(df_product)%>%
+#   group_by(label)%>%
+#   summarise(demand = sum(demand))
+
+## J'AI DETECTE UN PB, LE MODE SUBSAMPLE NE FONCTIONNE PAS SANS BOYCOTT
+# initial_demand_passive = generate_cross_product_derivative_and_demand(
+#   model, retailer_price_list_test, conditionals, subsample = "passive"
+# )%>% .$demand%>% .[relevant_product_number_list]
+# data.frame(demand = initial_demand_passive, product_number = df_product$product_number)%>%
+#   left_join(df_product)%>%
+#   group_by(label)%>%
+#   summarise(demand = sum(demand))
+
 initial_organic_price = df_price%>%
   filter(periode == 12)%>%
   group_by(label)%>%
@@ -2078,7 +2315,7 @@ initial_organic_price = df_price%>%
 price_without_activist = compute_equilibrium_price(
   model, retailer_price_list_test, conditionals,
   activist_price_list_test, hhid_activist_list_test,
-  boycott_type = "soft", subsample = "passive"
+  boycott_type = "hard", subsample = "passive"
   )
 
 organic_price_without_activist = 
@@ -2120,7 +2357,7 @@ df_boycott_analysis_label = df_boycott_analysis%>%
 
 df_boycott_analysis_label%>%
   filter(
-    abs(boycott_price - 0.30) < 0.001,
+    #abs(boycott_price - 0.30) < 0.001,
     label == "labelbio"
     )
 
