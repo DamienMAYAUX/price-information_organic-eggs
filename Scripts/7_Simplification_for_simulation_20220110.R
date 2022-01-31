@@ -264,6 +264,33 @@ for (competition_hypothesis in competition_hypothesis_list){
     pivot_wider(values_from = c(cycle), names_from = c(cycle), names_prefix = "cycle_")%>%
     mutate_if(is.character, ~as.integer(!is.na(.)))
   
+  df_household_kable = household%>%
+    select(-hhid)%>%
+    mutate(constant = 1)%>%
+    group_by(constant)%>%
+    summarise_all(mean)%>%
+    select(-constant)%>%
+    pivot_longer(1:14, names_to = "variable", values_to = "share")%>%
+    mutate(
+      share = paste0(format(round(share,2),2),"%"),
+      variable = case_when(
+        variable == "cycle_couple_35" ~ "Couple en dessous de 35 ans sans enfant",
+        variable == "cycle_couple_3565" ~ "Couple entre 35 et 65 ans sans enfant",
+        variable == "cycle_couple_65" ~ "Couple au dessus de 65 ans sans enfant",
+        variable == "cycle_family_05" ~ "Famille dont l'enfant le plus agé a moins de 5 ans",
+        variable == "cycle_family_611" ~ "Famille dont l'enfant le plus agé a entre 6 et 11 ans",
+        variable == "cycle_family_1217" ~ "Famille dont l'enfant le plus agé a entre 12 et 17 ans",
+        variable == "cycle_family_1824" ~ "Famille dont l'enfant le plus agé a entre 18 et 24 ans",
+        variable == "cycle_single_35" ~ "Célibataire en dessous de 35 ans",
+        variable == "cycle_single_3565" ~ "Célibataire entre 35 et 65 ans",
+        variable == "cycle_single_65" ~ "Célibataire au dessus de 65 ans",
+        variable == "clas_low" ~ "Bas niveau de revenu",
+        variable == "clas_low_middle" ~ "Assez bas niveau de revenu",
+        variable == "clas_high_middle" ~ "Assez haut niveau de revenu",
+        variable == "clas_high" ~ "Haut niveau de revenu"
+      )
+    )
+  
   choice_situation_with_nosale_for_apollo = choice_situation_with_nosale_for_estimation%>%
     left_join(df_product_simplified2)%>%
     group_by(X)%>%
@@ -585,22 +612,82 @@ setwd("./Inputs/Apollo")
 apollo_saveOutput(model)
 setwd(dir)
 
-model = apollo_loadModel("DemandModel_20220131/nosale_lnorm_with_control_perfect_competition")
-model$estimate
-model$varcov%>% View()
-df_model_coefficients = 
-  left_join(
-    model$estimate%>% as.data.frame()%>% rownames_to_column("coefficient"),
-    model$varcov%>% diag()%>% sqrt() %>% as.data.frame()%>% rownames_to_column("coefficient"),
-    by = ("coefficient")
-  )%>%
-  rename(
-    estimate = ..x,
-    standard_deviation = ..y
-    )%>%
-  mutate(
-    relative_error = 100* 1.96*standard_deviation/abs(estimate)
-  )
+# model = apollo_loadModel("DemandModel_20220131/nosale_lnorm_with_control_perfect_competition")
+# model$estimate
+# df_model_coefficients = 
+#   left_join(
+#     model$estimate%>% as.data.frame()%>% rownames_to_column("coefficient"),
+#     model$varcov%>% diag()%>% sqrt() %>% as.data.frame()%>% rownames_to_column("coefficient"),
+#     by = ("coefficient")
+#   )%>%
+#   rename(
+#     estimate = ..x,
+#     standard_deviation = ..y
+#     )%>%
+#   mutate(
+#     relative_error = 100* 1.96*standard_deviation/abs(estimate)
+#   )%>%
+#   mutate(
+#     logmean_reference_demographic_group = sum( estimate * (coefficient == "mu_lnorm") ),
+#     mean_reference_demographic_group = exp(logmean_reference_demographic_group),
+#     ratio = ifelse(
+#       str_detect(coefficient, "c_"),
+#       NA,
+#       estimate / mean_reference_demographic_group
+#     ),
+#     estimate_truncated = format(round(estimate, 3),3),
+#     ratio_truncated = ifelse(
+#       str_detect(coefficient,"b_"),
+#       ifelse(abs(ratio)<0.00001, "RÃ©fÃ©rence", as.character(format(round(ratio, 4), 4))),
+#       ""),
+#     estimate_truncated_star = ifelse(relative_error < 100, paste0(estimate_truncated,"*"), estimate_truncated),
+#     estimate_truncated_star = replace_na(estimate_truncated_star, "RÃ©fÃ©rence")
+#   )%>% filter(coefficient != "b_nosale")
+# 
+# #df_model_coefficient_kable = 
+# df_model_coefficients%>%
+#   select(coefficient, estimate_truncated_star, ratio_truncated)%>%
+#   mutate(
+#     coefficient = case_when(
+#       coefficient == "b_low" ~ "aMarque distributeur bas de gamme",
+#       coefficient == "b_medium" ~ "bMarque distributeur milleu de gamme",
+#       coefficient == "b_high" ~ "cMarque distributeur haut de gamme",
+#       coefficient == "b_indep" ~ "dMarque nationale",
+#       
+#       coefficient == "b_nolabel" ~ "ePoules Ã©levÃ©es en cage",
+#       coefficient == "b_labelpleinair" ~ "fPoules Ã©levÃ©es en plair air",
+#       coefficient == "b_labelbio" ~ "gPoules en Ã©levage biologique",
+#       
+#       coefficient == "b_calibreM" ~ "hCalibre moyen",
+#       coefficient == "b_calibreL" ~ "iCalibre large",
+#       
+#       coefficient == "b_control" ~ "jFonction de contrÃ´le",
+#       
+#       coefficient == "mu_lnorm" ~ "kLog-moyenne de la sensibilitÃ© au prix",
+#       coefficient == "c_low" ~ "lFaible niveau de revenu",
+#       coefficient == "c_low_middle" ~ "mAssez faible niveau de revenu",
+#       coefficient == "c_high_middle" ~ "nAssez haut niveau de revenu",
+#       coefficient == "c_high" ~ "oHaut niveau de revenu",
+#   
+#       coefficient == "sigma_lnorm" ~ "pLog-variance de la sensibilitÃ© au prix",
+#     ),
+#   )%>%
+#   arrange(coefficient)%>%
+#   mutate_at(vars(coefficient), ~str_sub(., start = 2))%>%
+#   rename(
+#     `Variable` = coefficient,
+#     `Valeur monÃ©taire (en â‚¬)` = ratio_truncated,
+#     `Coefficient estimÃ©` = estimate_truncated_star
+#     )%>%
+#   kbl()%>%
+#   kable_paper("striped", full_width = F)%>%
+#   pack_rows("Disposition Ã  payer pour les caractÃ©ristiques du produit", 1,10)%>%
+#   pack_rows("SensibilitÃ© au prix et variables dÃ©mographiques", 11,16)%>%
+#   footnote(general = "* l'Ã©toile indique que le coefficient est significativement diffÃ©rent de 0 avec 95% de certitude
+#            On normalise l'utilitÃ© de chaque caractÃ©ristique par la sensibilitÃ© au prix d'un mÃ©nage de rÃ©fÃ©rence 
+#            (assez faible revenu) pour obtenir la valeur monÃ©taire d'une caractÃ©ristique", footnote_as_chunk = T)%>%
+#   save_kable("Outputs/table_demand_coefficient.png")
+
 
 ## Result table for the product characteristic coefficients
 
@@ -615,7 +702,7 @@ df_model_coefficient_demographics = df_model_coefficients%>%
   mutate(
     estimate = ifelse(
       is.na(standard_deviation),
-      "Référence",
+      "RÃ©fÃ©rence",
       paste0(
         as.character(format(round(estimate, 3), nsmall=3)),
         "   +/- ",
@@ -625,12 +712,12 @@ df_model_coefficient_demographics = df_model_coefficients%>%
     ),
     standard_deviation = ifelse(
       is.na(standard_deviation),
-      "Référence",
+      "RÃ©fÃ©rence",
       as.character(format(round(standard_deviation, 3), nsmall=3))
       ),
     coefficient = case_when(
-      coefficient == "mu_lnorm" ~ "Log-moyenne de la sensibilité au prix pour un ménage de référence",
-      coefficient == "sigma_lnorm" ~ "Log-variance de la sensibilité au prix",
+      coefficient == "mu_lnorm" ~ "Log-moyenne de la sensibilitÃ© au prix pour un mÃ©nage de rÃ©fÃ©rence",
+      coefficient == "sigma_lnorm" ~ "Log-variance de la sensibilitÃ© au prix",
       coefficient == "c_high" ~ "Haut niveau de revenu",
       coefficient == "c_high_middle" ~ "Assez haut niveau de revenu",
       coefficient == "c_low_middle" ~ "Assez faible niveau de revenu",
@@ -638,19 +725,19 @@ df_model_coefficient_demographics = df_model_coefficients%>%
       coefficient == "c_couple_35" ~ "En couple, moins de 35 ans, sans enfant",
       coefficient == "c_couple_65" ~ "En couple, plus de 65 ans, sans enfant",
       coefficient == "c_couple_3565" ~ "En couple, entre 35 et 65 ans, sans enfant",
-      coefficient == "c_family_05" ~ "Famille, l'ainé-e a moins de 5 ans",
-      coefficient == "c_family_611" ~ "Famille, l'ainé-e a entre 6 et 11 ans",
-      coefficient == "c_family_1217" ~ "Famille, l'ainé-e a entre 12 et 17 ans",
-      coefficient == "c_family_1824" ~ "Famille, l'ainé-e a entre 18 et 24 ans",
-      coefficient == "c_single_35" ~ "Célibataire, moins de 35 ans, sans enfant",
-      coefficient == "c_single_65" ~ "Célibataire, plus de 65 ans, sans enfant",
-      coefficient == "c_single_3565" ~ "Célibataire, entre 35 et 65 ans, sans enfant",
+      coefficient == "c_family_05" ~ "Famille, l'ainÃ©-e a moins de 5 ans",
+      coefficient == "c_family_611" ~ "Famille, l'ainÃ©-e a entre 6 et 11 ans",
+      coefficient == "c_family_1217" ~ "Famille, l'ainÃ©-e a entre 12 et 17 ans",
+      coefficient == "c_family_1824" ~ "Famille, l'ainÃ©-e a entre 18 et 24 ans",
+      coefficient == "c_single_35" ~ "CÃ©libataire, moins de 35 ans, sans enfant",
+      coefficient == "c_single_65" ~ "CÃ©libataire, plus de 65 ans, sans enfant",
+      coefficient == "c_single_3565" ~ "CÃ©libataire, entre 35 et 65 ans, sans enfant",
     )
   )%>% 
   select(-relative_error, -standard_deviation)%>%
   rename(
     Variable = coefficient,
-    `Coefficient estimé` = estimate
+    `Coefficient estimÃ©` = estimate
   )
 
 df_model_coefficient_demographics_kable = df_model_coefficient_demographics%>%
@@ -658,7 +745,7 @@ df_model_coefficient_demographics_kable = df_model_coefficient_demographics%>%
   kable_paper("striped", full_width = F)%>%
   pack_rows("Niveau de revenu", 3,6)%>%
   pack_rows("Cycle de vie", 7,16)%>%
-  footnote(general = "Les intervalles de confiance sont donnés avec 95% de certitude", footnote_as_chunk = T)
+  footnote(general = "Les intervalles de confiance sont donnÃ©s avec 95% de certitude", footnote_as_chunk = T)
 
 df_model_coefficient_demographics_kable%>%
   save_kable("Outputs/demographic_coefficients_table.png")
@@ -836,7 +923,7 @@ df_model_coefficient_demographics_kable%>%
 
 # Il me faudrait des metriques ou des visualisations ici
 
-# On constate que les achats des ménages sont souvent tres polarises concernant le label
+# On constate que les achats des mÃ©nages sont souvent tres polarises concernant le label
 # Ils achetent rarement plus d'un label different
 
 
@@ -876,6 +963,118 @@ df_price = readRDS("Inputs/df_price_simplified.rds")
 
 conditionals = readRDS("Inputs/conditionals_simplified_20220131.rds")%>%
   select(-post.sd)
+
+# df_conditional_plot = conditionals%>%
+#   left_join(
+#     readRDS("Inputs/household.rds")
+#   )%>% 
+#   mutate(
+#     quant5 = quantile(conditional, probs = c(0.95)),
+#     quant1 = quantile(conditional, probs = c(0.99)),
+#     alpha5 = conditional >= quant5,
+#     alpha1 = conditional >= quant1,
+#     high_middle = (clas == "HIGH MIDDLE INCOME"),
+#     high = (clas == "HIGH INCOME")
+#     )
+# ggplot(
+#   bind_rows(
+#     df_conditional_plot%>% mutate(fill_category = "pg"),
+#     df_conditional_plot%>% filter(high_middle)%>% mutate(fill_category = "ahr"),
+#     df_conditional_plot%>% filter(high)%>% mutate(fill_category = "hr")
+#   ), 
+#   aes(x = conditional)
+#   )+
+#   geom_histogram(aes(fill = fill_category), color = "black", position = "dodge", alpha = 0.5)+
+#   geom_vline(xintercept = df_conditional_plot%>% select(quant5)%>% unique%>% .[1,1], color = "orange")+
+#   geom_text(
+#     x = df_conditional_plot%>% select(quant5)%>% unique%>% .[1,1],
+#     y = 190, label = "95e centile", color = "orange", hjust = 1.2
+#     )+
+#   geom_vline(xintercept = df_conditional_plot%>% select(quant1)%>% unique%>% .[1,1], color = "red")+
+#   geom_text(
+#     x = df_conditional_plot%>% select(quant1)%>% unique%>% .[1,1],
+#     y = 190, label = "99e centile", color = "red", hjust = -0.3
+#   )+
+#   ylab("Nombre de mÃ©nages") + xlab("SensibilitÃ© au prix")+
+#   scale_fill_manual(
+#     breaks = c("pg", "ahr", "hr"), 
+#     values = c("pg" = "grey2", "hr" = "blue", "ahr" = "green"),
+#     labels = c("Population gÃ©nÃ©rale", "Haut revenu", "Assez haut revenu"),
+#     drop = FALSE,
+#     name = "Echantillon de mÃ©nages"
+#   )+
+#   theme_bw()+
+#   theme(legend.position = "bottom")
+# ggsave("Outputs/distribution_alpha.png", width = 20, height = 20, units = "cm")
+
+# df_organic_conditional_plot = readRDS("Inputs/shopping_trips_with_nosale_20220115.rds")%>%
+#   filter(label != "nosale")%>%
+#   group_by(hhid)%>%
+#   mutate(total_purchase = n())%>%
+#   ungroup()%>%
+#   group_by(hhid, label)%>%
+#   summarise(share = n()/max(total_purchase))%>%
+#   pivot_wider(id_cols = "hhid", names_from = "label", values_from = "share")%>%
+#   select(hhid, labelbio)%>%
+#   mutate_at(vars(labelbio), ~replace_na(., 0))%>%
+#   left_join(conditionals)%>%
+#   filter(!is.na(conditional))
+# never_organic = df_organic_conditional_plot%>% filter(abs(labelbio)<0.01)%>% nrow() / nrow(df_organic_conditional_plot)
+# less_than_25pc_organic = df_organic_conditional_plot%>% filter(labelbio<=0.25)%>% nrow() / nrow(df_organic_conditional_plot)
+# always_organic = df_organic_conditional_plot%>% filter(abs(labelbio-1)<0.01)%>% nrow() / nrow(df_organic_conditional_plot)
+# less_than_25pc_organic- never_organic
+# ggplot(df_organic_conditional_plot)+
+#   annotate(geom = "text", x = -28, y = 1, label = " 3% des mÃ©nages achÃ¨tent toujours bio")+
+#   annotate(geom = "text", x = -28, y = 0.25, label = " 13% des mÃ©nages achÃ¨tent bio \nmais moins d'une fois sur quatre")+
+#   annotate(geom = "text", x = -28, y = -0.05, label = " 74% des mÃ©nages n'achÃ¨tent jamais bio")+
+#   stat_binhex(aes(x = conditional, y = labelbio), color = "black")+ 
+#   scale_fill_gradient(
+#     name = "MÃ©nages",
+#     breaks = c(1, 2, 5, 10, 20, 50, 100),
+#     trans = "log"
+#   )+
+#   scale_y_continuous(limits = c(-0.05, NA))+
+#   xlab("SensibilitÃ© au prix") + ylab("Part d'oeufs bios dans les achats")+
+# theme_bw()
+# ggsave("Outputs/organic_share_alpha.png", width = 25, height = 20, units = "cm")
+
+# readRDS("Inputs/shopping_trips_with_nosale_20220115.rds")%>%
+#   select(marque, marque_simple, label)%>%
+#   unique()%>%
+#   pivot_wider(id_cols = 1:2, names_from = label, values_from = label)%>%
+#   select(-nosale)%>%
+#   mutate_at( vars(nolabel, labelbio, labelpleinair), ~ifelse(is.na(.), "NON", "OUI"))%>%
+#   mutate(
+#     marque_simple = case_when(
+#       marque_simple == "high" ~ "1Marque distributeur haut de gamme",
+#       marque_simple == "medium" ~ "2Marque distributeur milieu de gamme",
+#       marque_simple == "low" ~ "3Marque distributeur bas de gamme",
+#       marque_simple == "indep" ~ "4Marque nationale"
+#     ),
+#     marque = case_when(
+#       marque == "OEUFS DE NOS REGIONS LES" ~ "LES OEUFS DE NOS REGIONS",
+#       marque == "GAULOIS LE" ~ "LE GAULOIS",
+#       TRUE ~ as.character(marque)
+#     )
+#   )%>%
+#   arrange(marque_simple)%>%
+#   mutate(marque_simple = substring(marque_simple, first = 2))%>%
+#   filter(!is.na(marque_simple))%>%
+#   select(marque, nolabel, labelpleinair, labelbio)%>%
+#   rename(
+#     `Marques` = marque,
+#     `En Cage` = nolabel,
+#     `En Plein air` = labelpleinair,
+#     `Biologique` = labelbio
+#     )%>%
+#   kbl()%>%
+#   kable_paper("striped", full_width = F)%>%
+#   pack_rows("Marques distributeur haut de gamme  ", 1,5)%>%
+#   pack_rows("Marques distributeur milieu de gamme  ", 6,10)%>%
+#   pack_rows("Marques distributeur bas de gamme  ", 11,16)%>%
+#   pack_rows("Marques nationales", 17,19)%>%
+#   footnote(general = "On conserve dans l'Ã©chantillon que les 3 marques nationales les plus vendues", footnote_as_chunk = T)%>%
+#   save_kable("Outputs/marque_simple_label_table.png")
 
 
 retailer_price_list_test = df_price%>%
@@ -1144,7 +1343,7 @@ generate_cross_product_derivative_and_demand =
     # Theoriquement, on pourrait multiplier ca par la "taille du marche", 
     # ie le nb moyen d'oeuf dans le panier du menage
     # J'obtiens une matrix 302x302 pour chacune des 53601 observations
-    # Il faut sommer direct pour éviter de prendre inutilement de la place en memoire
+    # Il faut sommer direct pour Ã©viter de prendre inutilement de la place en memoire
     cross_product_price_derivative_matrix = 
       t(product_share_matrix) %*% (product_share_matrix) - diag(demand_per_product)
     
@@ -1281,7 +1480,7 @@ cost_list = (1-0.055)*retailer_price_list_test - absolute_margin
 #     avg_margin = as.character(format(round(mean(margin), 3), nsmall = 3))
 #   )%>%
 #   rename(
-#     Catégorie = dummy,
+#     CatÃ©gorie = dummy,
 #     avg_cost_diff = avg_cost,
 #     avg_margin_diff = avg_margin
 #     )%>%
@@ -1297,21 +1496,21 @@ cost_list = (1-0.055)*retailer_price_list_test - absolute_margin
 #   mutate(
 #     avg_cost_diff = ifelse(
 #       avg_price == min(avg_price),
-#       "Référence", 
+#       "RÃ©fÃ©rence",
 #       as.character(format(round(avg_cost - sum((avg_price == min(avg_price)) * avg_cost), 3), nsmall = 3))
 #       ),
 #     avg_margin_diff = ifelse(
 #       avg_price == min(avg_price),
-#       "Référence", 
+#       "RÃ©fÃ©rence",
 #       as.character(format(round(avg_margin - sum((avg_price == min(avg_price)) * avg_margin), 3), nsmall = 3))
 #     ),
 #     label = case_when(
-#       label == "nolabel" ~ "Oeufs de poules élevées en cage",
-#       label == "labelpleinair" ~ "Oeufs de poules élevées en plein air",
+#       label == "nolabel" ~ "Oeufs de poules Ã©levÃ©es en cage",
+#       label == "labelpleinair" ~ "Oeufs de poules Ã©levÃ©es en plein air",
 #       label == "labelbio" ~ "Oeufs issus de l'agriculture biologique ",
 #     )
 #   )%>%
-#   rename(Catégorie = label)%>%
+#   rename(CatÃ©gorie = label)%>%
 #   arrange(avg_price)
 # 
 # df_calibration_marque_simple_analysis = df_calibration_analysis%>%
@@ -1324,22 +1523,22 @@ cost_list = (1-0.055)*retailer_price_list_test - absolute_margin
 #   mutate(
 #     avg_cost_diff = ifelse(
 #       avg_price == min(avg_price),
-#       "Référence", 
+#       "RÃ©fÃ©rence",
 #       as.character(format(round(avg_cost - sum((avg_price == min(avg_price)) * avg_cost), 3), nsmall = 3))
 #     ),
 #     avg_margin_diff = ifelse(
 #       avg_price == min(avg_price),
-#       "Référence", 
+#       "RÃ©fÃ©rence",
 #       as.character(format(round(avg_margin - sum((avg_price == min(avg_price)) * avg_margin), 3), nsmall = 3))
 #     ),
 #     marque_simple = case_when(
-#       marque_simple == "low" ~ "Marque distributeur entrée de gamme",
+#       marque_simple == "low" ~ "Marque distributeur entrÃ©e de gamme",
 #       marque_simple == "medium" ~ "Marque distributeur milieu de gamme",
 #       marque_simple == "high" ~ "Marque distributeur haut de gamme",
 #       marque_simple == "indep" ~ "Marque nationale",
 #     )
 #   )%>%
-#   rename(Catégorie = marque_simple)%>%
+#   rename(CatÃ©gorie = marque_simple)%>%
 #   arrange(avg_price)
 # 
 # df_calibration_format_analysis = df_calibration_analysis%>%
@@ -1352,22 +1551,22 @@ cost_list = (1-0.055)*retailer_price_list_test - absolute_margin
 #   mutate(
 #     avg_cost_diff = ifelse(
 #       avg_price == min(avg_price),
-#       "Référence", 
+#       "RÃ©fÃ©rence",
 #       as.character(format(round(avg_cost - sum((avg_price == min(avg_price)) * avg_cost), 3), nsmall = 3))
 #     ),
 #     avg_margin_diff = ifelse(
 #       avg_price == min(avg_price),
-#       "Référence", 
+#       "RÃ©fÃ©rence",
 #       as.character(format(round(avg_margin - sum((avg_price == min(avg_price)) * avg_margin), 3), nsmall = 3))
 #     ),
 #     format = case_when(
-#       format == 43 ~ "Hypermarchés",
-#       format == 42 ~ "Supermarchés",
-#       format == 41 ~ "Supérettes",
+#       format == 43 ~ "HypermarchÃ©s",
+#       format == 42 ~ "SupermarchÃ©s",
+#       format == 41 ~ "SupÃ©rettes",
 #       format == 7 ~ "Magasins populaires"
 #     )
 #   )%>%
-#   rename(Catégorie = format)%>%
+#   rename(CatÃ©gorie = format)%>%
 #   arrange(avg_price)
 # 
 # df_calibration_analysis_table = bind_rows(
@@ -1378,22 +1577,63 @@ cost_list = (1-0.055)*retailer_price_list_test - absolute_margin
 #   )%>%
 #   select(-avg_margin, -avg_cost)%>%
 #   select(
-#     Catégorie,
+#     CatÃ©gorie,
 #     `Prix moyen` = avg_price,
-#     `Coût marginal` = avg_cost_diff,
-#     `Marge` = avg_margin_diff
+#     `CoÃ»t marginal` = avg_cost_diff,
+#     `BÃ©nÃ©fice marginal` = avg_margin_diff
 #   )
 # 
-# df_calibration_analysis_table_kable = df_calibration_analysis_table%>%
-#   kbl()%>%
-#   kable_paper("striped", full_width = F)%>%
-#   pack_rows("Label", 2,4)%>%
-#   pack_rows("Marque simplifiée", 5,8)%>%
-#   pack_rows("Format", 9,12)%>%
-#   footnote(general = "Les prix sont en euros", footnote_as_chunk = T)
-# 
-# df_calibration_analysis_table_kable%>%
-#   save_kable("Outputs/calibration_table.png")
+# if (competition_hypothesis == 'period'){
+#   
+#   df_calibration_analysis_table_kable = df_calibration_analysis_table%>%
+#     kbl()%>%
+#     kable_paper("striped", full_width = F)%>%
+#     pack_rows("Label", 2,4)%>%
+#     pack_rows("Marque simplifiÃ©e", 5,8)%>%
+#     pack_rows("Format", 9,12)%>%
+#     footnote(general = "Les prix sont en euros.
+#            Les distributeurs anticipent la demande selon la configuration (3) pour la fixation des prix,
+#            dans laquelle chaque mÃ©nage n'aurait pu acheter que chez les distributeurs visitÃ©s durant la pÃ©riode
+#            ", footnote_as_chunk = T)
+#   
+#   df_calibration_analysis_table_kable%>%
+#     save_kable("Outputs/calibration_table_period.png")
+#   
+# } else if (competition_hypothesis == 'year'){
+#   
+#   df_calibration_analysis_table_kable = df_calibration_analysis_table%>%
+#     kbl()%>%
+#     kable_paper("striped", full_width = F)%>%
+#     pack_rows("Label", 2,4)%>%
+#     pack_rows("Marque simplifiÃ©e", 5,8)%>%
+#     pack_rows("Format", 9,12)%>%
+#     footnote(general = "Les prix sont en euros.
+#            Les distributeurs anticipent la demande selon la configuration (2) pour la fixation des prix,
+#            dans laquelle chaque mÃ©nage n'aurait pu acheter que chez les distributeurs visitÃ©s durant l'annÃ©e
+#            ", footnote_as_chunk = T)
+#   
+#   df_calibration_analysis_table_kable%>%
+#     save_kable("Outputs/calibration_table_year.png")
+#   
+# } else {
+#   
+#   df_calibration_analysis_table_kable = df_calibration_analysis_table%>%
+#     kbl()%>%
+#     kable_paper("striped", full_width = F)%>%
+#     pack_rows("Label", 2,4)%>%
+#     pack_rows("Marque simplifiÃ©e", 5,8)%>%
+#     pack_rows("Format", 9,12)%>%
+#     footnote(general = "Les prix sont en euros.
+#            Les distributeurs anticipent la demande selon la configuration (1) pour la fixation des prix,
+#            dans laquelle chaque mÃ©nage aurait pu acheter chez tous les distributeurs
+#            ", footnote_as_chunk = T)
+#   
+#   df_calibration_analysis_table_kable%>%
+#     save_kable("Outputs/calibration_table_perfect_competition.png")
+#   
+# }
+
+
 
 
 
@@ -1403,9 +1643,9 @@ cost_list = (1-0.055)*retailer_price_list_test - absolute_margin
 ####################### Parameters #########################
 ############################################################
 
-boycott_price_min = 0.1
-boycott_price_max = 0.7
-boycott_step = 0.05
+boycott_price_min = 0.25
+boycott_price_max = 0.35
+boycott_step = 0.02
 boycott_price_range = boycott_price_min + boycott_step * 0:(1+(boycott_price_max-boycott_price_min)/boycott_step)
 
 # hhid_activist_list = hhid_activist_list_test
@@ -1449,7 +1689,7 @@ compute_equilibrium_price = function(
   iteration_counter = 0
   error = 1
 
-  # On itere l'algo suivant tant que ça bouge d'au moins d'un tiers de centime sur une composante :
+  # On itere l'algo suivant tant que Ã§a bouge d'au moins d'un tiers de centime sur une composante :
   while (error > precision){
 
     current_retailer_price = new_retailer_price
@@ -1471,7 +1711,7 @@ compute_equilibrium_price = function(
     demand = demand_and_matrix$demand
     cross_product_price_derivative_matrix = demand_and_matrix$matrix
 
-    # 2) On calcule le prix optimal à partir des couts et de la demande
+    # 2) On calcule le prix optimal Ã  partir des couts et de la demande
 
     relevant_demand = demand %>% .[relevant_product_number_list]
     relevant_cross_product_price_derivative_matrix =
@@ -1479,7 +1719,7 @@ compute_equilibrium_price = function(
     omega = belonging_matrix * relevant_cross_product_price_derivative_matrix
 
     # On rappelle que [1-tau]P = C - Omega^-1 D
-    # Pour faciler la convergence, moyenne le nouveau vecteur de prix avec le précédent
+    # Pour faciler la convergence, moyenne le nouveau vecteur de prix avec le prÃ©cÃ©dent
     previous_error = error
     current_step = step
     while (error >= previous_error){
@@ -1893,7 +2133,7 @@ compute_equilibrium_price_boycott_range = function(
 
 #### POUR LA NUIT #####
 
-# - un cas sans boycott pour vérifier que tout va bien (1)
+# - un cas sans boycott pour vÃ©rifier que tout va bien (1)
 # - middle high 5% et high 5% en soft (2)
 # - alpha et top consommateurs bios en hard et 0.5%, 1% et 5% (6)
 
@@ -2244,9 +2484,8 @@ boycotted_products%>%group_by(label)%>%
 #       round(100*(x - retailer_price_list_test)/retailer_price_list_test)
 #     }
 #   )
-
-retailer_price_list_range = retailer_price_list_range_hard_alpha_1percent_0_70_02
-hhid_activist_list = hhid_activist_list_alpha_1percent
+retailer_price_list_range = readRDS("Inputs/price_range_hard_25_35_2.rds")
+hhid_activist_list = hhid_activist_list_alpha_5percent
 boycott_type = "hard"
 
 demand_range = 1:length(retailer_price_list_range)%>%
@@ -2278,6 +2517,178 @@ activist_demand_range = 1:length(retailer_price_list_range)%>%
         .[relevant_product_number_list]
     }
   )
+
+
+
+########## PLOT AREA #############
+
+boycott_price = readRDS("Inputs/retailer_price_list_range_soft_high_middle_5percent_0_70_02_25c.rds")
+activist_price_list = rep(0.25, 122)
+hhid_activist_list = hhid_activist_list_high_middle_5percent
+boycott_type = "soft"
+
+# boycott_price = readRDS("Inputs/retailer_price_list_range_hard_alpha_5percent_0_70_02_25c.rds")
+# activist_price_list = rep(0.25, 122)
+# hhid_activist_list = hhid_activist_list_alpha_5percent
+# boycott_type = "hard"
+
+
+initial_price = retailer_price_list_test
+
+absence_price = compute_equilibrium_price(
+  model,
+  retailer_price_list_test,
+  conditionals,
+  rep(0,122),
+  hhid_activist_list,
+  boycott_type,
+  precision = 0.000000001
+)
+
+boycott_demand = generate_cross_product_derivative_and_demand(
+  model,
+  boycott_price,
+  conditionals,
+  activist_price_list,
+  hhid_activist_list,
+  boycott_type,
+)$demand%>% .[relevant_product_number_list]
+
+boycott_demand_activist = generate_cross_product_derivative_and_demand(
+  model,
+  boycott_price,
+  conditionals,
+  activist_price_list,
+  hhid_activist_list,
+  boycott_type,
+  "activist"
+)$demand%>% .[relevant_product_number_list]
+
+initial_demand = generate_cross_product_derivative_and_demand(
+  model,
+  retailer_price_list_test,
+  conditionals
+)$demand%>% .[relevant_product_number_list]
+
+initial_demand_activist = generate_cross_product_derivative_and_demand(
+  model,
+  retailer_price_list_test,
+  conditionals,
+  rep(1.5, 122),
+  hhid_activist_list,
+  "soft",
+  "activist"
+)$demand%>% .[relevant_product_number_list]
+
+
+absence_demand = generate_cross_product_derivative_and_demand(
+  model,
+  absence_price,
+  conditionals,
+  rep(0,122),
+  hhid_activist_list,
+  "hard"
+)$demand%>% .[relevant_product_number_list]
+
+df_product_level_boycott_effect = data.frame(
+  product_number = df_product$product_number,
+  initial_demand = initial_demand,
+  initial_demand_activist = initial_demand_activist,
+  absence_demand = absence_demand,
+  boycott_demand = boycott_demand,
+  boycott_demand_activist = boycott_demand_activist,
+  initial_price = initial_price,
+  absence_price = absence_price,
+  boycott_price = boycott_price
+)%>% left_join(df_product)
+
+df_product_level_boycott_effect%>%
+  mutate(
+    boycott_price_effect_demand = round(100*((boycott_demand-boycott_demand_activist) - absence_demand)/absence_demand),
+    boycott_price_effect_price = round(100*(boycott_price-absence_price)/absence_price),
+    surevaluation_effect_demand = round(100*(absence_demand - (initial_demand-initial_demand_activist))/(initial_demand-initial_demand_activist)),
+    surevaluation_effect_price = round(100*(absence_price-initial_price)/initial_price),
+    activist_effect_demand = round(100*(boycott_demand_activist-initial_demand_activist)/initial_demand),
+    total_effect_demand = round(100*(boycott_demand - initial_demand)/initial_demand),
+    total_effect_price = round(100*(boycott_price - initial_price)/initial_price)
+  )
+
+df_boycott_effect = df_product_level_boycott_effect%>%
+  group_by(label)%>%
+  summarise(
+    initial_demand = sum(initial_demand),
+    initial_demand_activist = sum(initial_demand_activist),
+    absence_demand = sum(absence_demand),
+    boycott_demand = sum(boycott_demand),
+    boycott_demand_activist = sum(boycott_demand_activist),
+    initial_price = mean(initial_price, weights = initial_demand),
+    absence_price = mean(absence_price, weights = absence_demand),
+    boycott_price = mean(boycott_price, weights = boycott_demand)
+  )%>%
+  mutate(
+    boycott_price_effect_demand = round(100*((boycott_demand-boycott_demand_activist) - absence_demand)/absence_demand),
+    boycott_price_effect_price = round(100*(boycott_price-absence_price)/absence_price),
+    surevaluation_effect_demand = round(100*(absence_demand - (initial_demand-initial_demand_activist))/(initial_demand-initial_demand_activist)),
+    surevaluation_effect_price = round(100*(absence_price-initial_price)/initial_price),
+    activist_effect_demand = round(100*(boycott_demand_activist-initial_demand_activist)/initial_demand),
+    total_effect_demand = round(100*(boycott_demand - initial_demand)/initial_demand),
+    total_effect_price = round(100*(boycott_price - initial_price)/initial_price),
+    rounded_initial_price = format(round(initial_price,3),3),
+    rounded_absence_price = format(round(absence_price,3),3),
+    rounded_boycott_price = format(round(boycott_price,3),3),
+    label = case_when(
+      label == "labelbio" ~ "Biologique",
+      label == "labelpleinair" ~ "Plein Air",
+      label == "nolabel" ~ "En Cage"
+    )
+  )%>%
+  select(
+    label,
+    rounded_initial_price,
+    rounded_absence_price,
+    rounded_boycott_price,
+    total_effect_price,
+    surevaluation_effect_price,
+    boycott_price_effect_price,
+    total_effect_demand,
+    activist_effect_demand,
+    surevaluation_effect_demand,
+    boycott_price_effect_demand,
+    )
+
+# df_boycott_effect1 = df_boycott_effect
+# df_boycott_effect2 = df_boycott_effect
+
+bind_rows(
+  df_boycott_effect1,
+  df_boycott_effect2
+)%>%
+  # mutate(
+  #   across(contains("effect")), ~paste(.,"%")
+  #   )%>%
+  rename(
+    Label = label,
+    `Prix initial` = rounded_initial_price,
+    `Prix sans activiste` = rounded_absence_price,
+    `Prix avec le boycott`= rounded_boycott_price,
+    `Effet total du boycott sur le prix` = total_effect_price,
+    `Effet de surÃ©valuation sur le prix` = surevaluation_effect_price,
+    `Effet du prix seuil sur le prix` = boycott_price_effect_price,
+    `Effet total du boycott sur la demande` = total_effect_demand,
+    `Effet de la consommation activiste sur la demande` = activist_effect_demand,
+    `Effet de surÃ©valuation sur la demande` = surevaluation_effect_demand,
+    `Effet du prix seuil sur la demande` = boycott_price_effect_demand
+  )%>%
+  kbl()%>%
+  kable_paper("striped", full_width = F)%>%
+  column_spec (c(1,7),border_left = F, border_right = T)%>%
+  pack_rows("Cas 1 : Boycott souple, 5% d'activistes parmi les mÃ©nages Ã  assez haut revenu, prix de boycott 0,25â‚¬", 1,3)%>%
+  pack_rows("Cas 2 : Boycott strict, 5% d'activistes parmi les mÃ©nages avec la plus faible sensiblitÃ© prix, prix de boycott 0,25â‚¬", 4,6)%>%
+    footnote(general = "Les prix sont en euros. Les distributeurs anticipent la demande selon la configuration (1) pour la fixation des prix, dans laquelle chaque mÃ©nage aurait pu acheter chez tous les distributeurs
+           ", footnote_as_chunk = T)
+ #%>%  save_kable("Outputs/table_simulation_result.png")
+
+##################################
 
 
 # Similar data for the initial setting
@@ -2474,7 +2885,7 @@ ggplot(
 #   maxeval = 100000
 # )
 # 
-# # Optimisation pour un prix de boycott donné
+# # Optimisation pour un prix de boycott donnÃ©
 # tic("Optimization with DirectL")
 # fit_direct = directL(
 #   fn = function_to_minimize,
@@ -2653,7 +3064,7 @@ ggplot(
 #     iteration_counter = 0
 #     total_error = 1
 #     
-#     # On itere l'algo suivant tant que ça bouge d'au moins un centime sur une composante :
+#     # On itere l'algo suivant tant que Ã§a bouge d'au moins un centime sur une composante :
 #     while (total_error > 0.05){
 #       
 #       total_error = 0
@@ -2675,7 +3086,7 @@ ggplot(
 #         demand = demand_and_matrix$demand
 #         cross_product_price_derivative_matrix = demand_and_matrix$matrix
 #         
-#         # 2) On calcule le prix optimal à partir des couts et de la demande
+#         # 2) On calcule le prix optimal Ã  partir des couts et de la demande
 #         
 #         relevant_cost_list = full_cost_list[relevant_product_number_list]
 #         
@@ -2911,7 +3322,7 @@ ggplot(
 #       best_retailer_specific_price = NULL 
 #       best_profit = 0
 #       
-#       # On considere pour chaque produit bio l'éventualite que le prix de boycott soit applique
+#       # On considere pour chaque produit bio l'Ã©ventualite que le prix de boycott soit applique
 #       for (i in 1:length(combination_list)){
 #         
 #         current_retailer_organic_product_at_boycott_price = combination_list[[i]]
@@ -2924,7 +3335,7 @@ ggplot(
 #         test_retailer_price = current_retailer_price
 #         test_retailer_price[current_retailer_organic_product_at_boycott_price] = 
 #           activist_price_list[current_retailer_organic_product_at_boycott_price] -
-#           0.0001 # Pour eviter les erreurs numeriques dues aux comparaisons d'égalite entre flottants
+#           0.0001 # Pour eviter les erreurs numeriques dues aux comparaisons d'Ã©galite entre flottants
 #         
 #         for (product_rank in retailer_product_list[[current_retailer]]){
 #           
