@@ -264,7 +264,7 @@ for (competition_hypothesis in competition_hypothesis_list){
     pivot_wider(values_from = c(cycle), names_from = c(cycle), names_prefix = "cycle_")%>%
     mutate_if(is.character, ~as.integer(!is.na(.)))
   
-  df_household_kable = household%>%
+  household%>%
     select(-hhid)%>%
     mutate(constant = 1)%>%
     group_by(constant)%>%
@@ -272,24 +272,34 @@ for (competition_hypothesis in competition_hypothesis_list){
     select(-constant)%>%
     pivot_longer(1:14, names_to = "variable", values_to = "share")%>%
     mutate(
-      share = paste0(format(round(share,2),2),"%"),
+      share = paste0(format(round(100*share,1),1),"%"),
       variable = case_when(
-        variable == "cycle_couple_35" ~ "Couple en dessous de 35 ans sans enfant",
-        variable == "cycle_couple_3565" ~ "Couple entre 35 et 65 ans sans enfant",
-        variable == "cycle_couple_65" ~ "Couple au dessus de 65 ans sans enfant",
-        variable == "cycle_family_05" ~ "Famille dont l'enfant le plus agé a moins de 5 ans",
-        variable == "cycle_family_611" ~ "Famille dont l'enfant le plus agé a entre 6 et 11 ans",
-        variable == "cycle_family_1217" ~ "Famille dont l'enfant le plus agé a entre 12 et 17 ans",
-        variable == "cycle_family_1824" ~ "Famille dont l'enfant le plus agé a entre 18 et 24 ans",
-        variable == "cycle_single_35" ~ "Célibataire en dessous de 35 ans",
-        variable == "cycle_single_3565" ~ "Célibataire entre 35 et 65 ans",
-        variable == "cycle_single_65" ~ "Célibataire au dessus de 65 ans",
-        variable == "clas_low" ~ "Bas niveau de revenu",
-        variable == "clas_low_middle" ~ "Assez bas niveau de revenu",
-        variable == "clas_high_middle" ~ "Assez haut niveau de revenu",
-        variable == "clas_high" ~ "Haut niveau de revenu"
+        variable == "cycle_couple_35" ~ "aCouple en dessous de 35 ans sans enfant",
+        variable == "cycle_couple_3565" ~ "bCouple entre 35 et 65 ans sans enfant",
+        variable == "cycle_couple_65" ~ "cCouple au dessus de 65 ans sans enfant",
+        variable == "cycle_family_05" ~ "dFamille dont l'enfant le plus agé a moins de 5 ans",
+        variable == "cycle_family_611" ~ "eFamille dont l'enfant le plus agé a entre 6 et 11 ans",
+        variable == "cycle_family_1217" ~ "fFamille dont l'enfant le plus agé a entre 12 et 17 ans",
+        variable == "cycle_family_1824" ~ "gFamille dont l'enfant le plus agé a entre 18 et 24 ans",
+        variable == "cycle_single_35" ~ "hCélibataire en dessous de 35 ans",
+        variable == "cycle_single_3565" ~ "iCélibataire entre 35 et 65 ans",
+        variable == "cycle_single_65" ~ "jCélibataire au dessus de 65 ans",
+        variable == "clas_low" ~ "kBas niveau de revenu",
+        variable == "clas_low_middle" ~ "lAssez bas niveau de revenu",
+        variable == "clas_high_middle" ~ "mAssez haut niveau de revenu",
+        variable == "clas_high" ~ "nHaut niveau de revenu"
       )
-    )
+    )%>% arrange(variable)%>% 
+    mutate(variable = substring(variable, first = 2))%>%
+    rename(
+      `Part dans l'échantillon` = share,
+      `Variable socio-démographique` = variable
+      )%>%
+    kbl()%>%
+    kable_paper(lightable_options = "strip", full_width = F)%>%
+    pack_rows("Cycle de vie",1,10)%>%
+    pack_rows("Niveau de revenu",11,14)%>%
+    save_kable("Outputs/summary_statistic_demographics.png")
   
   choice_situation_with_nosale_for_apollo = choice_situation_with_nosale_for_estimation%>%
     left_join(df_product_simplified2)%>%
